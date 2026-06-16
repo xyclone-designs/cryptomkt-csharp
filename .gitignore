@@ -1,0 +1,7 @@
+sdk/.vs
+sdk/Cryptomarket/bin
+sdk/Cryptomarket/obj
+sdk/Cryptomarket.SDK/bin
+sdk/Cryptomarket.SDK/obj
+sdk/Cryptomarket.Tests.SDK/bin
+sdk/Cryptomarket.Tests.SDK/obj

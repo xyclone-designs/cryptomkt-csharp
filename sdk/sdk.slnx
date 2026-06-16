@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Cryptomarket.SDK/Cryptomarket.SDK.csproj" />
+  <Project Path="Cryptomarket.Tests.SDK/Cryptomarket.Tests.SDK.csproj" />
+  <Project Path="Cryptomarket/Cryptomarket.csproj" />
+</Solution>
