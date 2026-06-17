@@ -14,36 +14,7 @@ using Org.Jetbrains.Annotations;
 using Cryptomarket.SDK;
 using Cryptomarket.SDK.Exceptions;
 using Cryptomarket.SDK.Models;
-using Com.Squareup.Moshi;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
-using static Cryptomarket.SDK.Rest.AccountType;
-using static Cryptomarket.SDK.Rest.ContingencyType;
-using static Cryptomarket.SDK.Rest.Depth;
-using static Cryptomarket.SDK.Rest.IdentifyBy;
-using static Cryptomarket.SDK.Rest.NotificationType;
-using static Cryptomarket.SDK.Rest.OBSpeed;
-using static Cryptomarket.SDK.Rest.OrderBy;
-using static Cryptomarket.SDK.Rest.OrderStatus;
-using static Cryptomarket.SDK.Rest.OrderType;
-using static Cryptomarket.SDK.Rest.Period;
-using static Cryptomarket.SDK.Rest.PriceSpeed;
-using static Cryptomarket.SDK.Rest.ReportType;
-using static Cryptomarket.SDK.Rest.Side;
-using static Cryptomarket.SDK.Rest.Sort;
-using static Cryptomarket.SDK.Rest.SortBy;
-using static Cryptomarket.SDK.Rest.SubAccountStatus;
-using static Cryptomarket.SDK.Rest.SubAccountTransferType;
-using static Cryptomarket.SDK.Rest.SubscriptionMode;
-using static Cryptomarket.SDK.Rest.TickerSpeed;
-using static Cryptomarket.SDK.Rest.TimeInForce;
-using static Cryptomarket.SDK.Rest.TransactionStatus;
-using static Cryptomarket.SDK.Rest.TransactionSubtype;
-using static Cryptomarket.SDK.Rest.TransactionType;
-using static Cryptomarket.SDK.Rest.UseOffchain;
+using Cryptomarket.Exceptions;
 
 namespace Cryptomarket.SDK.Rest
 {
@@ -70,27 +41,19 @@ namespace Cryptomarket.SDK.Rest
 
             public HttpDeleteWithBody(string uri) : base()
             {
-                SetURI(URI.Create(uri));
+                SetUri(Uri.Create(uri));
             }
 
-            public HttpDeleteWithBody(URI uri) : base()
+            public HttpDeleteWithBody(Uri uri) : base()
             {
-                SetURI(uri);
+                SetUri(uri);
             }
 
-            public HttpDeleteWithBody() : base()
-            {
-            }
+            public HttpDeleteWithBody() : base() { }
         }
 
-        public HttpClientImpl(string url, string apiVersion, string apiKey, string apiSecret) : this(url, apiVersion, apiKey, apiSecret, 0)
-        {
-        }
-
-        public HttpClientImpl(org.apache.http.impl.client.CloseableHttpClient client, string url, string apiVersion, string apiKey, string apiSecret) : this(client, url, apiVersion, apiKey, apiSecret, 0)
-        {
-        }
-
+        public HttpClientImpl(string url, string apiVersion, string apiKey, string apiSecret) : this(url, apiVersion, apiKey, apiSecret, 0) { }
+        public HttpClientImpl(HttpClient client, string url, string apiVersion, string apiKey, string apiSecret) : this(client, url, apiVersion, apiKey, apiSecret, 0) { }
         public HttpClientImpl(string url, string apiVersion, string apiKey, string apiSecret, int window)
         {
             this.client = HttpClients.CreateDefault();
@@ -99,7 +62,7 @@ namespace Cryptomarket.SDK.Rest
             this.apiVersion = apiVersion;
         }
 
-        public HttpClientImpl(org.apache.http.impl.client.CloseableHttpClient client, string url, string apiVersion, string apiKey, string apiSecret, int window)
+        public HttpClientImpl(HttpClient client, string url, string apiVersion, string apiKey, string apiSecret, int window)
         {
             this.client = client;
             this.hmac = new HMAC(apiKey, apiSecret, window);
@@ -124,15 +87,15 @@ namespace Cryptomarket.SDK.Rest
 
         public virtual string PublicGet(string endpoint, Dictionary<string, string> @params)
         {
-            URI uri = null;
+            Uri uri = null;
             try
             {
-                URIBuilder uriBuilder = new URIBuilder(url + apiVersion + endpoint);
+                UriBuilder uriBuilder = new UriBuilder(url + apiVersion + endpoint);
                 if (@params != null)
                     @params.ForEach((key, val) => uriBuilder.AddParameter(key, val));
                 uri = uriBuilder.Build();
             }
-            catch (URISyntaxException e)
+            catch (UriSyntaxException e)
             {
                 throw new CryptomarketSDKException("Failed to build the uri", e);
             }
@@ -143,7 +106,7 @@ namespace Cryptomarket.SDK.Rest
 
         public virtual string Get(string endpoint, Dictionary<string, string> @params)
         {
-            URI uri = BuildUri(endpoint, @params);
+            Uri uri = BuildUri(endpoint, @params);
             HttpGet httpGet = new HttpGet(uri);
             new HttpPost(uri);
             string credential = hmac.GetCredential(HttpMethod.GET.ToString(), uri.GetQuery(), uri.GetPath());
@@ -151,16 +114,16 @@ namespace Cryptomarket.SDK.Rest
             return MakeRequest(httpGet);
         }
 
-        private URI BuildUri(string endpoint, Dictionary<string, string> @params)
+        private Uri BuildUri(string endpoint, Dictionary<string, string> @params)
         {
             try
             {
-                URIBuilder uriBuilder = new URIBuilder(url + apiVersion + endpoint);
+                UriBuilder uriBuilder = new UriBuilder(url + apiVersion + endpoint);
                 if (@params != null)
                     @params.EntrySet().Stream().Sorted(Map.Entry.ComparingByKey()).ForEach((e) => uriBuilder.AddParameter(e.GetKey(), e.GetValue()));
                 return uriBuilder.Build();
             }
-            catch (URISyntaxException e)
+            catch (UriSyntaxException e)
             {
                 throw new CryptomarketSDKException("Failed to build the uri", e);
             }

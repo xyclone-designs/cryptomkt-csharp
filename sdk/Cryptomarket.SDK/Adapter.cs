@@ -33,6 +33,7 @@ using static Cryptomarket.SDK.TransactionStatus;
 using static Cryptomarket.SDK.TransactionSubtype;
 using static Cryptomarket.SDK.TransactionType;
 using static Cryptomarket.SDK.UseOffchain;
+using Cryptomarket.Exceptions;
 
 namespace Cryptomarket.SDK
 {
@@ -53,7 +54,7 @@ namespace Cryptomarket.SDK
             mapStrStrJsonAdapter = moshi.Adapter(mapStringString);
         }
 
-        public virtual string ObjectToJson<T>(T @object, Class<T> cls)
+        public virtual string ObjectToJson<T>(T @object)
         {
             JsonAdapter<T> jsonAdapter = moshi.Adapter(cls);
             return ConvertingException.IoAndJsonDataAndAssertionToParse(jsonAdapter.ToJson(), @object);
@@ -64,20 +65,22 @@ namespace Cryptomarket.SDK
             return ConvertingException.IoAndJsonDataAndAssertionToParse(mapStrStrJsonAdapter.ToJson(), map);
         }
 
-        public virtual T ObjectFromJson<T>(string json, Class<T> cls)
+        public virtual T ObjectFromJson<T>(string json)
         {
             JsonAdapter<T> jsonAdapter = moshi.Adapter(cls);
             return ConvertingException.IoAndJsonDataAndAssertionToParse(jsonAdapter.FromJson(), json);
         }
 
-        public virtual IList<T> ListFromJson<T>(string json, Class<T> cls)
+        public virtual IList<T> ListFromJson<T>(string json)
         {
-            Type type = Types.NewParameterizedType(typeof(IList), cls);
+            Type type = type Types.NewParameterizedType(typeof(), cls);
+
             JsonAdapter<IList<T>> jsonAdapter = moshi.Adapter(type);
+
             return ConvertingException.IoAndJsonDataAndAssertionToParse(jsonAdapter.FromJson(), json);
         }
 
-        public virtual Dictionary<string, IList<T>> ListMapFromJson<T>(string json, Class<T> cls)
+        public virtual Dictionary<string, IList<T>> ListMapFromJson<T>(string json)
         {
             try
             {
@@ -91,6 +94,7 @@ namespace Cryptomarket.SDK
                 {
                     parsed.Put(key, jsonAdapter.FromJsonValue(value));
                 });
+
                 return parsed;
             }
             catch (IOException e)
@@ -107,7 +111,7 @@ namespace Cryptomarket.SDK
             }
         }
 
-        public virtual Dictionary<string, IList<T>> ListMapFromObject<T>(object @object, Class<T> cls)
+        public virtual Dictionary<string, IList<T>> ListMapFromObject<T>(object @object)
         {
             Type type = Types.NewParameterizedType(typeof(Dictionary), typeof(string), typeof(object));
             JsonAdapter<Dictionary<string, object>> mapAdapter = moshi.Adapter(type);
@@ -135,7 +139,7 @@ namespace Cryptomarket.SDK
             return parsed;
         }
 
-        public virtual Dictionary<string, T> MapFromJson<T>(string json, Class<T> cls)
+        public virtual Dictionary<string, T> MapFromJson<T>(string json)
         {
             try
             {
@@ -157,37 +161,37 @@ namespace Cryptomarket.SDK
             }
         }
 
-        public virtual T ObjectFromJsonValue<T>(string json, string key, Class<T> cls)
+        public virtual T ObjectFromJsonValue<T>(string json, string key)
         {
-            Dictionary<string, object> objectMap = MapFromJson(json, typeof(object));
+            Dictionary<string, object> objectMap = MapFromJson<object>(json);
             JsonAdapter<T> jsonAdapter = moshi.Adapter(cls);
             object value = objectMap[key];
             return ConvertingException.IoAndJsonDataAndAssertionToParse(jsonAdapter.FromJsonValue(), value);
         }
 
-        public virtual IList<T> ListFromJsonValue<T>(string json, string key, Class<T> cls)
+        public virtual IList<T> ListFromJsonValue<T>(string json, string key)
         {
-            Dictionary<string, object> objectMap = MapFromJson(json, typeof(object));
+            Dictionary<string, object> objectMap = MapFromJson<object>(json);
             Type type = Types.NewParameterizedType(typeof(IList), cls);
             JsonAdapter<IList<T>> jsonAdapter = moshi.Adapter(type);
             object value = objectMap[key];
             return ConvertingException.IoAndJsonDataAndAssertionToParse(jsonAdapter.FromJsonValue(), value);
         }
 
-        public virtual T ObjectFromValue<T>(object value, Class<T> cls)
+        public virtual T ObjectFromValue<T>(object value)
         {
             JsonAdapter<T> jsonAdapter = moshi.Adapter(cls);
             return ConvertingException.IoAndJsonDataAndAssertionToParse(jsonAdapter.FromJsonValue(), value);
         }
 
-        public virtual Dictionary<string, T> MapFromValue<T>(object value, Class<T> cls)
+        public virtual Dictionary<string, T> MapFromValue<T>(object value)
         {
             Type type = Types.NewParameterizedType(typeof(Dictionary), typeof(string), cls);
             JsonAdapter<Dictionary<string, T>> mapAdapter = moshi.Adapter(type);
             return ConvertingException.IoAndJsonDataAndAssertionToParse(mapAdapter.FromJsonValue(), value);
         }
 
-        public virtual IList<T> ListFromValue<T>(object value, Class<T> cls)
+        public virtual IList<T> ListFromValue<T>(object value)
         {
             Type type = Types.NewParameterizedType(typeof(IList), cls);
             JsonAdapter<IList<T>> jsonAdapter = moshi.Adapter(type);
@@ -201,17 +205,16 @@ namespace Cryptomarket.SDK
             Dictionary<string, object> map = mapAdapter.FromJsonValue(value);
             object list = map[key];
             if (key == null)
-            {
-                return Arrays.AsList();
-            }
+                return [];
 
             return ListFromValue(list, typeof(string));
         }
 
-        public virtual string ListToJson<T>(IList<T> list, Class<T> cls)
+        public virtual string ListToJson<T>(IList<T> list)
         {
             Type type = Types.NewParameterizedType(typeof(IList), cls);
             JsonAdapter<IList<T>> listAdapter = moshi.Adapter(type);
+
             return ConvertingException.IoAndJsonDataAndAssertionToParse(listAdapter.ToJson(), list);
         }
     }

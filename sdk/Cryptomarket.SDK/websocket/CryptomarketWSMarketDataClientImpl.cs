@@ -1,7 +1,7 @@
 using Java.Io;
 using Java.Util;
 using Java.Util.Function;
-using Com.Cryptomarket.Params;
+using Com.Cryptomarket.SDK.Params;
 using Cryptomarket.SDK;
 using Cryptomarket.SDK.Exceptions;
 using Cryptomarket.SDK.Models;

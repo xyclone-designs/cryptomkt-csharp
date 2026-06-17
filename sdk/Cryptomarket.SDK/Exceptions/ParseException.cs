@@ -1,5 +1,5 @@
 
-namespace Cryptomarket.SDK.Exceptions
+namespace Cryptomarket.Exceptions
 {
     /// <summary>
     /// An exception thrown when conversion to java classes fails

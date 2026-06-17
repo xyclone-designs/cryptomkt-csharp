@@ -3,6 +3,7 @@ using Java.Util;
 using Javax.Crypto;
 using Javax.Crypto.Spec;
 using Org.Apache.Commons.Codec.Binary;
+using Org.BouncyCastle.Utilities.Encoders;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -86,7 +87,7 @@ namespace Cryptomarket.SDK
             }
         }
 
-        public static string Sign(string key, string message)
+        public static string? Sign(string key, string message)
         {
             SecretKeySpec keySpec = new SecretKeySpec(key.GetBytes(charset), HMAC_SHA256);
             Mac sha256Hmac;
@@ -95,9 +96,10 @@ namespace Cryptomarket.SDK
                 sha256Hmac = Mac.GetInstance(HMAC_SHA256);
                 sha256Hmac.Init(keySpec);
                 byte[] macData = sha256Hmac.DoFinal(message.GetBytes(charset));
-                return new string (Hex.EncodeHex(macData));
+                
+                return Hex.ToHexString(macData);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return null;
             }

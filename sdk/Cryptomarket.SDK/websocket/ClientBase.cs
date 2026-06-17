@@ -39,27 +39,19 @@ using static Cryptomarket.SDK.Websocket.HttpMethod;
 
 namespace Cryptomarket.SDK.Websocket
 {
-    public class ClientBase : WSHandler
+    public class ClientBase : IWSHandler
     {
         InterceptorCache interceptorCache = new InterceptorCache();
         OrderbookCache OBCache = new OrderbookCache();
         public Adapter adapter = new Adapter();
         protected WebSocketConnection websocket;
         private Dictionary<string, string> subscriptionKeys;
-        protected Runnable onConnectR = () =>
-        {
-        };
-        private Consumer<string> onCloseC = (reason) =>
-        {
-        };
-        private Consumer<Exception> onFailureC = (exception) =>
-        {
-        };
+
         class Payload
         {
             string method;
             string channel;
-            Dictionary<string, object> params;
+            Dictionary<string, object> _params;
             int id;
             public Payload(string method, Dictionary<string, object> @params)
             {
@@ -84,43 +76,23 @@ namespace Cryptomarket.SDK.Websocket
             websocket = new WebSocketConnection(this, url);
         }
 
-        protected virtual Dictionary<string, string> GetSubscritpionKeys()
+
+        protected virtual Dictionary<string, string> SubscritpionKeys { get; set; }
+
+
+        public virtual Action OnConnect { get; set; } = () => { };
+        public virtual Action<string> OnClose { get; set; } = _ => { };
+        public virtual Action<Exception> OnFailure { get; set; } = _ => { };
+
+        public virtual void Connect()
         {
-            return this.subscriptionKeys;
+            websocket.Run();
         }
-
-        protected virtual void SendSubscription(string method, Dictionary<string, object> @params, Interceptor feedInterceptor, Interceptor resultInterceptor)
+        public virtual void Dispose()
         {
-            string key = BuildKey(method, @params);
-            interceptorCache.StoreSubscriptionInterceptor(key, feedInterceptor);
-            SendById(method, @params, resultInterceptor);
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
-
-        protected virtual void SendUnsubscription(string method, Dictionary<string, object> @params, Interceptor interceptor)
-        {
-            string key = BuildKey(method, @params);
-            interceptorCache.DeleteSubscriptionInterceptor(key);
-            SendById(method, @params, interceptor);
-        }
-
-        protected virtual void SendById(string method, Dictionary<string, object> @params, Interceptor interceptor)
-        {
-            SendById(method, @params, interceptor, 1);
-        }
-
-        protected virtual void SendById(string method, Dictionary<string, object> @params, Interceptor interceptor, int callCount)
-        {
-            Payload payload = new Payload(method, @params);
-            if (interceptor != null)
-            {
-                int id = interceptorCache.SaveInterceptor(interceptor, callCount);
-                payload.id = id;
-            }
-
-            string json = payloadAdapter.ToJson(payload);
-            websocket.Send(json);
-        }
-
         public virtual void Handle(string json)
         {
             WSJsonResponse response = adapter.ObjectFromJson(json, typeof(WSJsonResponse));
@@ -134,6 +106,28 @@ namespace Cryptomarket.SDK.Websocket
             }
         }
 
+        protected virtual string BuildKey(string method)
+        {
+            if (subscriptionKeys.ContainsKey(method))
+            {
+                return this.subscriptionKeys[method];
+            }
+
+            return "suscription";
+        }
+        protected virtual string BuildKey(string method, Dictionary<string, object> @params)
+        {
+            return BuildKey(method);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                websocket.Dispose();
+            }
+        }
+
         protected virtual void HandleNotification(WSJsonResponse response)
         {
             string key = BuildKey(response.GetMethod());
@@ -141,7 +135,6 @@ namespace Cryptomarket.SDK.Websocket
             if (interceptor != null)
                 interceptor.MakeCall(response);
         }
-
         protected virtual void HandleResponse(WSJsonResponse response)
         {
             var interceptor = interceptorCache.GetInterceptor(response.GetId());
@@ -153,59 +146,33 @@ namespace Cryptomarket.SDK.Websocket
             interceptor.Get().MakeCall(response);
         }
 
-        protected virtual string BuildKey(string method)
+        protected virtual void SendById(string method, Dictionary<string, object> @params, Interceptor interceptor)
         {
-            if (subscriptionKeys.ContainsKey(method))
+            SendById(method, @params, interceptor, 1);
+        }
+        protected virtual void SendById(string method, Dictionary<string, object> @params, Interceptor interceptor, int callCount)
+        {
+            Payload payload = new Payload(method, @params);
+            if (interceptor != null)
             {
-                return this.subscriptionKeys[method];
+                int id = interceptorCache.SaveInterceptor(interceptor, callCount);
+                payload.id = id;
             }
 
-            return "suscription";
+            string json = payloadAdapter.ToJson(payload);
+            websocket.Send(json);
         }
-
-        protected virtual string BuildKey(string method, Dictionary<string, object> @params)
+        protected virtual void SendSubscription(string method, Dictionary<string, object> @params, Interceptor feedInterceptor, Interceptor resultInterceptor)
         {
-            return BuildKey(method);
+            string key = BuildKey(method, @params);
+            interceptorCache.StoreSubscriptionInterceptor(key, feedInterceptor);
+            SendById(method, @params, resultInterceptor);
         }
-
-        public virtual void Dispose()
+        protected virtual void SendUnsubscription(string method, Dictionary<string, object> @params, Interceptor interceptor)
         {
-            websocket.Dispose();
-        }
-
-        public virtual void Connect()
-        {
-            websocket.Run();
-        }
-
-        public virtual void OnConnect(Runnable onConnect)
-        {
-            this.onConnectR = onConnect;
-        }
-
-        public virtual Runnable GetOnConnect()
-        {
-            return onConnectR;
-        }
-
-        public virtual void OnClose(Consumer<string> onClose)
-        {
-            this.onCloseC = onClose;
-        }
-
-        public virtual Consumer<string> GetOnClose()
-        {
-            return onCloseC;
-        }
-
-        public virtual void OnFailure(Consumer<Exception> onFailure)
-        {
-            this.onFailureC = onFailure;
-        }
-
-        public virtual Consumer<Exception> GetOnFailure()
-        {
-            return onFailureC;
+            string key = BuildKey(method, @params);
+            interceptorCache.DeleteSubscriptionInterceptor(key);
+            SendById(method, @params, interceptor);
         }
     }
 }
