@@ -1,38 +1,6 @@
-using Java.Nio.Charset;
-using Java.Util;
-using Javax.Crypto;
-using Javax.Crypto.Spec;
-using Org.Apache.Commons.Codec.Binary;
 using Org.BouncyCastle.Utilities.Encoders;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
+
 using System.Text;
-using static Cryptomarket.SDK.AccountType;
-using static Cryptomarket.SDK.ContingencyType;
-using static Cryptomarket.SDK.Depth;
-using static Cryptomarket.SDK.IdentifyBy;
-using static Cryptomarket.SDK.NotificationType;
-using static Cryptomarket.SDK.OBSpeed;
-using static Cryptomarket.SDK.OrderBy;
-using static Cryptomarket.SDK.OrderStatus;
-using static Cryptomarket.SDK.OrderType;
-using static Cryptomarket.SDK.Period;
-using static Cryptomarket.SDK.PriceSpeed;
-using static Cryptomarket.SDK.ReportType;
-using static Cryptomarket.SDK.Side;
-using static Cryptomarket.SDK.Sort;
-using static Cryptomarket.SDK.SortBy;
-using static Cryptomarket.SDK.SubAccountStatus;
-using static Cryptomarket.SDK.SubAccountTransferType;
-using static Cryptomarket.SDK.SubscriptionMode;
-using static Cryptomarket.SDK.TickerSpeed;
-using static Cryptomarket.SDK.TimeInForce;
-using static Cryptomarket.SDK.TransactionStatus;
-using static Cryptomarket.SDK.TransactionSubtype;
-using static Cryptomarket.SDK.TransactionType;
-using static Cryptomarket.SDK.UseOffchain;
 
 namespace Cryptomarket.SDK
 {
@@ -47,6 +15,7 @@ namespace Cryptomarket.SDK
         private string apiSecret;
         private string apiKey;
         private int window;
+
         public HMAC(string apiKey, string apiSecret, int window)
         {
             this.apiKey = apiKey;
@@ -69,19 +38,35 @@ namespace Cryptomarket.SDK
             return apiKey;
         }
 
-        public virtual string GetCredential(string method, string body, string url)
+        public virtual string? GetCredential(string method, string body, string url)
         {
-            string timestamp = String.Format("%d", System.CurrentTimeMillis());
-            string message = new StringBuffer().Append(method).Append(url).Append((method.Equals("GET") && body != null) ? "?" : "").Append((body != null) ? body : "").Append(timestamp).Append(window != 0 ? window : "").ToString();
+            string timestamp = string.Format("{0:D9}", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            string message = new StringBuilder()
+                .Append(method)
+                .Append(url)
+                .Append((method.Equals("GET") && body != null) ? "?" : "")
+                .Append(body ?? "")
+                .Append(timestamp)
+                .Append(window != 0 ? window : "")
+            .ToString();
+
             try
             {
-                string signature = HMAC.Sign(this.apiSecret, message);
-                string signed = new StringBuffer().Append(this.apiKey).Append(":").Append(signature).Append(":").Append(timestamp).Append(window != 0 ? ":" : "").Append(window != 0 ? window : "").ToString();
+                string? signature = Sign(apiSecret, message);
+                string signed = new StringBuilder()
+                    .Append(apiKey)
+                    .Append(':')
+                    .Append(signature)
+                    .Append(':')
+                    .Append(timestamp)
+                    .Append(window != 0 ? ":" : "")
+                    .Append(window != 0 ? window : "")
+                .ToString();
                 byte[] strBytes = signed.GetBytes(charset);
-                string authStr = Base64.GetEncoder().EncodeToString(strBytes).Trim();
+                string authStr = Base64.ToBase64String(strBytes).Trim();
                 return "HS256 " + authStr;
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return null;
             }

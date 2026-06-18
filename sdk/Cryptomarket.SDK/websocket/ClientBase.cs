@@ -1,88 +1,32 @@
-using Java.Io;
-using Java.Util;
-using Java.Util.Function;
-using Cryptomarket.SDK;
-using Cryptomarket.SDK.Exceptions;
 using Cryptomarket.SDK.Models;
-using Cryptomarket.SDK.Websocket.Interceptor;
-using Com.Squareup.Moshi;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
-using static Cryptomarket.SDK.Websocket.AccountType;
-using static Cryptomarket.SDK.Websocket.ContingencyType;
-using static Cryptomarket.SDK.Websocket.Depth;
-using static Cryptomarket.SDK.Websocket.IdentifyBy;
-using static Cryptomarket.SDK.Websocket.NotificationType;
-using static Cryptomarket.SDK.Websocket.OBSpeed;
-using static Cryptomarket.SDK.Websocket.OrderBy;
-using static Cryptomarket.SDK.Websocket.OrderStatus;
-using static Cryptomarket.SDK.Websocket.OrderType;
-using static Cryptomarket.SDK.Websocket.Period;
-using static Cryptomarket.SDK.Websocket.PriceSpeed;
-using static Cryptomarket.SDK.Websocket.ReportType;
-using static Cryptomarket.SDK.Websocket.Side;
-using static Cryptomarket.SDK.Websocket.Sort;
-using static Cryptomarket.SDK.Websocket.SortBy;
-using static Cryptomarket.SDK.Websocket.SubAccountStatus;
-using static Cryptomarket.SDK.Websocket.SubAccountTransferType;
-using static Cryptomarket.SDK.Websocket.SubscriptionMode;
-using static Cryptomarket.SDK.Websocket.TickerSpeed;
-using static Cryptomarket.SDK.Websocket.TimeInForce;
-using static Cryptomarket.SDK.Websocket.TransactionStatus;
-using static Cryptomarket.SDK.Websocket.TransactionSubtype;
-using static Cryptomarket.SDK.Websocket.TransactionType;
-using static Cryptomarket.SDK.Websocket.UseOffchain;
-using static Cryptomarket.SDK.Websocket.HttpMethod;
+using Cryptomarket.SDK.Websocket.Interceptors;
+
+using System.Text.Json;
 
 namespace Cryptomarket.SDK.Websocket
 {
     public class ClientBase : IWSHandler
     {
-        InterceptorCache interceptorCache = new InterceptorCache();
-        OrderbookCache OBCache = new OrderbookCache();
-        public Adapter adapter = new Adapter();
+        public Adapter adapter = new ();
+        protected InterceptorCache interceptorCache = new ();
+        protected OrderbookCache OBCache = new ();
         protected WebSocketConnection websocket;
-        private Dictionary<string, string> subscriptionKeys;
+        protected Dictionary<string, string> subscriptionKeys;
 
-        class Payload
-        {
-            string method;
-            string channel;
-            Dictionary<string, object> _params;
-            int id;
-            public Payload(string method, Dictionary<string, object> @params)
-            {
-                this.method = method;
-                this.@params = @params;
-            }
-
-            public Payload(string method, string channel, Dictionary<string, object> @params)
-            {
-                this.method = method;
-                this.channel = channel;
-                this.@params = @params;
-            }
-        }
-
-        JsonAdapter<Payload> payloadAdapter;
         protected ClientBase(string url)
         {
             Moshi moshi = new Builder().Build();
+
+            subscriptionKeys = [];
             payloadAdapter = moshi.Adapter(typeof(Payload));
-            this.subscriptionKeys = new HashMap<string, string>();
             websocket = new WebSocketConnection(this, url);
         }
-
-
-        protected virtual Dictionary<string, string> SubscritpionKeys { get; set; }
-
 
         public virtual Action OnConnect { get; set; } = () => { };
         public virtual Action<string> OnClose { get; set; } = _ => { };
         public virtual Action<Exception> OnFailure { get; set; } = _ => { };
+
+        protected virtual Dictionary<string, string> SubscritpionKeys { get; set; }
 
         public virtual void Connect()
         {
@@ -95,23 +39,18 @@ namespace Cryptomarket.SDK.Websocket
         }
         public virtual void Handle(string json)
         {
-            WSJsonResponse response = adapter.ObjectFromJson(json, typeof(WSJsonResponse));
-            if (response.GetId() != null)
-            {
+            WSJsonResponse response = adapter.ObjectFromJson<WSJsonResponse>(json);
+
+            if (response.Id != null)
                 HandleResponse(response);
-            }
-            else if (response.GetMethod() != null)
-            {
+            else if (response.Method != null)
                 HandleNotification(response);
-            }
         }
 
         protected virtual string BuildKey(string method)
         {
-            if (subscriptionKeys.ContainsKey(method))
-            {
-                return this.subscriptionKeys[method];
-            }
+            if (subscriptionKeys.TryGetValue(method, out string? value) && value is not null)
+                return value;
 
             return "suscription";
         }
@@ -130,20 +69,18 @@ namespace Cryptomarket.SDK.Websocket
 
         protected virtual void HandleNotification(WSJsonResponse response)
         {
-            string key = BuildKey(response.GetMethod());
-            Interceptor interceptor = interceptorCache.GetSubscriptionInterceptor(key);
-            if (interceptor != null)
-                interceptor.MakeCall(response);
+            string key = BuildKey(response.Method);
+            
+            interceptorCache
+                .GetSubscriptionInterceptor(key)?
+                .MakeCall(response);
         }
         protected virtual void HandleResponse(WSJsonResponse response)
         {
-            var interceptor = interceptorCache.GetInterceptor(response.GetId());
-            if (interceptor.IsEmpty())
-            {
+            if (response.Id is null || interceptorCache.GetInterceptor(response.Id.Value) is not Interceptor interceptor)
                 return;
-            }
 
-            interceptor.Get().MakeCall(response);
+            interceptor.MakeCall(response);
         }
 
         protected virtual void SendById(string method, Dictionary<string, object> @params, Interceptor interceptor)
@@ -152,14 +89,16 @@ namespace Cryptomarket.SDK.Websocket
         }
         protected virtual void SendById(string method, Dictionary<string, object> @params, Interceptor interceptor, int callCount)
         {
-            Payload payload = new Payload(method, @params);
+            Payload payload = new (method, @params);
+
             if (interceptor != null)
             {
                 int id = interceptorCache.SaveInterceptor(interceptor, callCount);
-                payload.id = id;
+                payload.Id = id;
             }
 
-            string json = payloadAdapter.ToJson(payload);
+            string json = JsonSerializer.Serialize(payload);
+
             websocket.Send(json);
         }
         protected virtual void SendSubscription(string method, Dictionary<string, object> @params, Interceptor feedInterceptor, Interceptor resultInterceptor)
@@ -173,6 +112,26 @@ namespace Cryptomarket.SDK.Websocket
             string key = BuildKey(method, @params);
             interceptorCache.DeleteSubscriptionInterceptor(key);
             SendById(method, @params, interceptor);
+        }
+
+        internal class Payload
+        {
+            public int Id;
+            public string Method;
+            public string? Channel;
+            public Dictionary<string, object> Params;
+
+            public Payload(string method, Dictionary<string, object> @params)
+            {
+                Method = method;
+                Params = @params;
+            }
+            public Payload(string method, string channel, Dictionary<string, object> @params)
+            {
+                Method = method;
+                Channel = channel;
+                Params = @params;
+            }
         }
     }
 }

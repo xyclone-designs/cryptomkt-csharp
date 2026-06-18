@@ -1,7 +1,7 @@
 using Cryptomarket.SDK.Models;
 using Cryptomarket.SDK.Requests;
 using Cryptomarket.SDK.Params;
-using Cryptomarket.Exceptions;
+using Cryptomarket.SDK.Exceptions;
 
 namespace Cryptomarket.SDK.Rest
 {
@@ -577,7 +577,7 @@ namespace Cryptomarket.SDK.Rest
         }
         public virtual bool WithdrawCryptoCommit(string transactionId)
         {
-            string jsonResponse = httpClient.Put(string.Format("wallet/crypto/withdraw/{0}", transactionId), null);
+            string jsonResponse = httpClient.Add(string.Format("wallet/crypto/withdraw/{0}", transactionId), null);
             
             return adapter.ObjectFromJsonValue<bool>(jsonResponse, "result");
         }

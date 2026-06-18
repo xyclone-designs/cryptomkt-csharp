@@ -1,96 +1,38 @@
-using Java.Io;
-using Java.Util;
-using Java.Util.Function;
-using Com.Cryptomarket.SDK.Params;
-using Cryptomarket.SDK;
 using Cryptomarket.SDK.Exceptions;
 using Cryptomarket.SDK.Models;
-using Cryptomarket.SDK.Websocket.Interceptor;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
-using static Cryptomarket.SDK.Websocket.AccountType;
-using static Cryptomarket.SDK.Websocket.ContingencyType;
-using static Cryptomarket.SDK.Websocket.Depth;
-using static Cryptomarket.SDK.Websocket.IdentifyBy;
-using static Cryptomarket.SDK.Websocket.NotificationType;
-using static Cryptomarket.SDK.Websocket.OBSpeed;
-using static Cryptomarket.SDK.Websocket.OrderBy;
-using static Cryptomarket.SDK.Websocket.OrderStatus;
-using static Cryptomarket.SDK.Websocket.OrderType;
-using static Cryptomarket.SDK.Websocket.Period;
-using static Cryptomarket.SDK.Websocket.PriceSpeed;
-using static Cryptomarket.SDK.Websocket.ReportType;
-using static Cryptomarket.SDK.Websocket.Side;
-using static Cryptomarket.SDK.Websocket.Sort;
-using static Cryptomarket.SDK.Websocket.SortBy;
-using static Cryptomarket.SDK.Websocket.SubAccountStatus;
-using static Cryptomarket.SDK.Websocket.SubAccountTransferType;
-using static Cryptomarket.SDK.Websocket.SubscriptionMode;
-using static Cryptomarket.SDK.Websocket.TickerSpeed;
-using static Cryptomarket.SDK.Websocket.TimeInForce;
-using static Cryptomarket.SDK.Websocket.TransactionStatus;
-using static Cryptomarket.SDK.Websocket.TransactionSubtype;
-using static Cryptomarket.SDK.Websocket.TransactionType;
-using static Cryptomarket.SDK.Websocket.UseOffchain;
-using static Cryptomarket.SDK.Websocket.HttpMethod;
+using Cryptomarket.SDK.Params;
+using Cryptomarket.SDK.Websocket.Interceptors;
+
+using System.Text.Json;
 
 namespace Cryptomarket.SDK.Websocket
 {
-    public class CryptomarketWSMarketDataClientImpl : ClientBase, CryptomarketWSMarketDataClient
+    public class CryptomarketWSMarketDataClientImpl : ClientBase, ICryptomarketWSMarketDataClient
     {
-        OrderbookCache OBCache = new OrderbookCache();
+        private OrderbookCache OBCache = new OrderbookCache();
         protected Adapter adapter = new Adapter();
-        public CryptomarketWSMarketDataClientImpl() : base("wss://api.exchange.cryptomkt.com/api/3/ws/public")
-        {
-        }
+
+        public CryptomarketWSMarketDataClientImpl() : base("wss://api.exchange.cryptomkt.com/api/3/ws/public") { }
 
         public override void Handle(string json)
         {
-            WSJsonResponse response = adapter.ObjectFromJson(json, typeof(WSJsonResponse));
-            if (response.GetChannel() != null)
-            {
+            WSJsonResponse response = adapter.ObjectFromJson<WSJsonResponse>(json);
+
+            if (response.Channel != null)
                 HandleNotification(response);
-            }
-            else if (response.GetId() != null)
-            {
+            else if (response.Id != null)
                 HandleResponse(response);
-            }
-            else
-            {
-            }
+            else { }
         }
 
         protected override void HandleNotification(WSJsonResponse response)
         {
             string key = BuildKey(response);
-            Interceptor interceptor = interceptorCache.GetSubscriptionInterceptor(key);
-            if (interceptor != null)
-            {
-                interceptor.MakeCall(response);
-            }
-            else
-            {
-            }
+            
+            interceptorCache
+                .GetSubscriptionInterceptor(key)?
+                .MakeCall(response);
         }
-
-        private void SubscriptionByChannel(string channel, Dictionary<string, object> @params, Interceptor feedInterceptor, Interceptor resultInterceptor)
-        {
-            string key = BuildKey(channel, @params);
-            interceptorCache.StoreSubscriptionInterceptor(key, feedInterceptor);
-            Payload payload = new Payload("subscribe", channel, @params);
-            if (resultInterceptor != null)
-            {
-                int id = interceptorCache.SaveInterceptor(resultInterceptor);
-                payload.id = id;
-            }
-
-            string json = payloadAdapter.ToJson(payload);
-            websocket.Send(json);
-        }
-
         protected override string BuildKey(string channel, Dictionary<string, object> @params)
         {
             string key = @params.ContainsKey(ArgNames.TARGET_CURRENCY) ? channel + (string)@params[ArgNames.TARGET_CURRENCY] : channel;
@@ -99,122 +41,139 @@ namespace Cryptomarket.SDK.Websocket
 
         private string BuildKey(WSJsonResponse response)
         {
-            string channel = response.GetChannel();
-            string targetCurrency = response.GetTargetCurrency();
+            string channel = response.Channel;
+            string targetCurrency = response.TargetCurrency;
             return targetCurrency != null ? channel + targetCurrency : channel;
         }
 
-        private void MakeSubscriptionWithInterceptors<T>(string channel, ParamsBuilder @params, Class<T> cls, BiConsumer<Dictionary<string, T>, NotificationType> notificationBiConsumer, BiConsumer<IList<string>, CryptomarketSDKException> resultBiConsumer)
+        private void SubscriptionByChannel(string channel, Dictionary<string, object> @params, Interceptor feedInterceptor, Interceptor resultInterceptor)
         {
-            Interceptor interceptor = InterceptorFactory.NewOfChanneledWSResponse(notificationBiConsumer, cls);
-            Interceptor resultInterceptor = (resultBiConsumer == null) ? null : InterceptorFactory.NewOfSubscriptionResponse(resultBiConsumer);
+            string key = BuildKey(channel, @params);
+            interceptorCache.StoreSubscriptionInterceptor(key, feedInterceptor);
+            
+            Payload payload = new ("subscribe", channel, @params);
+            if (resultInterceptor != null)
+            {
+                int id = interceptorCache.SaveInterceptor(resultInterceptor);
+                payload.Id = id;
+            }
+
+            string json = JsonSerializer.Serialize(payload);
+
+            websocket.Send(json);
+        }
+        private void MakeSubscriptionWithInterceptors<T>(string channel, ParamsBuilder @params, Action<Dictionary<string, T>, NotificationType> notificationAction, Action<IList<string>, CryptomarketSDKException> resultAction)
+        {
+            Interceptor interceptor = InterceptorFactory.NewOfChanneledWSResponse<T>(notificationAction);
+            Interceptor resultInterceptor = InterceptorFactory.NewOfSubscriptionResponse(resultAction);
+            
+            SubscriptionByChannel(channel, @params.BuildObjectMap(), interceptor, resultInterceptor);
+        }
+        private void MakeSubscriptionWithListInterceptors<T>(string channel, ParamsBuilder @params, Action<Dictionary<string, IList<T>>, NotificationType> notificationAction, Action<IList<string>, CryptomarketSDKException> resultAction)
+        {
+            Interceptor interceptor = InterceptorFactory.NewMapStringListOfChanneledWSResponseObject<T>(notificationAction);
+            Interceptor resultInterceptor = InterceptorFactory.NewOfSubscriptionResponse(resultAction);
+            
             SubscriptionByChannel(channel, @params.BuildObjectMap(), interceptor, resultInterceptor);
         }
 
-        private void MakeSubscriptionWithListInterceptors<T>(string channel, ParamsBuilder @params, Class<T> cls, BiConsumer<Dictionary<string, IList<T>>, NotificationType> notificationBiConsumer, BiConsumer<IList<string>, CryptomarketSDKException> resultBiConsumer)
+        public void SubscribeToTrades(Action<Dictionary<string, IList<WSPublicTrade>>, NotificationType> notificationAction, IList<string> symbols, int limit, Action<IList<string>, CryptomarketSDKException> resultAction)
         {
-            Interceptor interceptor = InterceptorFactory.NewMapStringListOfChanneledWSResponseObject(notificationBiConsumer, cls);
-            Interceptor resultInterceptor = (resultBiConsumer == null) ? null : InterceptorFactory.NewOfSubscriptionResponse(resultBiConsumer);
-            SubscriptionByChannel(channel, @params.BuildObjectMap(), interceptor, resultInterceptor);
-        }
-
-        // PUBLIC METHODS
-        public override void SubscribeToTrades(BiConsumer<Dictionary<string, IList<WSPublicTrade>>, NotificationType> notificationBiConsumer, IList<string> symbols, int limit, BiConsumer<IList<string>, CryptomarketSDKException> resultBiConsumer)
-        {
-            ParamsBuilder params = new ParamsBuilder().SymbolList(symbols).Limit(limit);
+            ParamsBuilder @params = new ParamsBuilder().SymbolList(symbols).Limit(limit);
             string channel = "trades";
-            MakeSubscriptionWithListInterceptors(channel, @params, typeof(WSPublicTrade), notificationBiConsumer, resultBiConsumer);
+            
+            MakeSubscriptionWithListInterceptors<WSPublicTrade>(channel, @params, notificationAction, resultAction);
         }
-
-        public override void SubscribeToCandles(BiConsumer<Dictionary<string, IList<WSCandle>>, NotificationType> notificationBiConsumer, Period period, IList<string> symbols, int limit, BiConsumer<IList<string>, CryptomarketSDKException> resultBiConsumer)
+        public void SubscribeToCandles(Action<Dictionary<string, IList<WSCandle>>, NotificationType> notificationAction, Period period, IList<string> symbols, int limit, Action<IList<string>, CryptomarketSDKException> resultAction)
         {
-            ParamsBuilder params = new ParamsBuilder().SymbolList(symbols).Limit(limit);
-            string channel = String.Format("candles/%s", period);
-            MakeSubscriptionWithListInterceptors(channel, @params, typeof(WSCandle), notificationBiConsumer, resultBiConsumer);
+            ParamsBuilder @params = new ParamsBuilder().SymbolList(symbols).Limit(limit);
+            string channel = string.Format("candles/{0}", period);
+            
+            MakeSubscriptionWithListInterceptors<WSCandle>(channel, @params, notificationAction, resultAction);
         }
-
-        public override void SubscribeToConvertedCandles(BiConsumer<Dictionary<string, IList<WSCandle>>, NotificationType> notificationBiConsumer, string targetCurrency, Period period, IList<string> symbols, int limit, BiConsumer<IList<string>, CryptomarketSDKException> resultBiConsumer)
+        public void SubscribeToConvertedCandles(Action<Dictionary<string, IList<WSCandle>>, NotificationType> notificationAction, string targetCurrency, Period period, IList<string> symbols, int limit, Action<IList<string>, CryptomarketSDKException> resultAction)
         {
-            ParamsBuilder params = new ParamsBuilder().TargetCurrency(targetCurrency).SymbolList(symbols).Limit(limit);
-            string channel = String.Format("converted/candles/%s", period);
-            MakeSubscriptionWithListInterceptors(channel, @params, typeof(WSCandle), notificationBiConsumer, resultBiConsumer);
+            ParamsBuilder @params = new ParamsBuilder().TargetCurrency(targetCurrency).SymbolList(symbols).Limit(limit);
+            string channel = string.Format("converted/candles/{0}", period);
+            
+            MakeSubscriptionWithListInterceptors<WSCandle>(channel, @params, notificationAction, resultAction);
         }
-
-        public override void SubscribeToPriceRates(BiConsumer<Dictionary<string, WSPriceRate>, NotificationType> notificationBiConsumer, PriceSpeed speed, string targetCurrency, IList<string> currencies, BiConsumer<IList<string>, CryptomarketSDKException> resultBiConsumer)
+        public void SubscribeToPriceRates(Action<Dictionary<string, WSPriceRate>, NotificationType> notificationAction, PriceSpeed speed, string targetCurrency, IList<string> currencies, Action<IList<string>, CryptomarketSDKException> resultAction)
         {
-            ParamsBuilder params = new ParamsBuilder().CurrencyListOrAsterisc(currencies).TargetCurrency(targetCurrency);
-            string channel = String.Format("price/rate/%s", speed);
-            MakeSubscriptionWithInterceptors(channel, @params, typeof(WSPriceRate), notificationBiConsumer, resultBiConsumer);
+            ParamsBuilder @params = new ParamsBuilder().CurrencyListOrAsterisc(currencies).TargetCurrency(targetCurrency);
+            string channel = string.Format("price/rate/{0}", speed);
+            
+            MakeSubscriptionWithInterceptors<WSPriceRate>(channel, @params, notificationAction, resultAction);
         }
-
-        public override void SubscribeToPriceRatesInBatches(BiConsumer<Dictionary<string, WSPriceRate>, NotificationType> notificationBiConsumer, PriceSpeed speed, string targetCurrency, IList<string> currencies, BiConsumer<IList<string>, CryptomarketSDKException> resultBiConsumer)
+        public void SubscribeToPriceRatesInBatches(Action<Dictionary<string, WSPriceRate>, NotificationType> notificationAction, PriceSpeed speed, string targetCurrency, IList<string> currencies, Action<IList<string>, CryptomarketSDKException> resultAction)
         {
-            ParamsBuilder params = new ParamsBuilder().CurrencyListOrAsterisc(currencies).TargetCurrency(targetCurrency);
-            string channel = String.Format("price/rate/%s/batches", speed);
-            MakeSubscriptionWithInterceptors(channel, @params, typeof(WSPriceRate), notificationBiConsumer, resultBiConsumer);
+            ParamsBuilder @params = new ParamsBuilder().CurrencyListOrAsterisc(currencies).TargetCurrency(targetCurrency);
+            string channel = string.Format("price/rate/{0}/batches", speed);
+            
+            MakeSubscriptionWithInterceptors<WSPriceRate>(channel, @params, notificationAction, resultAction);
         }
-
-        public override void SubscribeToMiniTicker(BiConsumer<Dictionary<string, WSCandle>, NotificationType> notificationBiConsumer, TickerSpeed speed, IList<string> symbols, BiConsumer<IList<string>, CryptomarketSDKException> resultBiConsumer)
+        public void SubscribeToMiniTicker(Action<Dictionary<string, WSCandle>, NotificationType> notificationAction, TickerSpeed speed, IList<string> symbols, Action<IList<string>, CryptomarketSDKException> resultAction)
         {
-            ParamsBuilder params = new ParamsBuilder().SymbolListOrAsteric(symbols);
-            string channel = String.Format("ticker/price/%s", speed);
-            MakeSubscriptionWithInterceptors(channel, @params, typeof(WSCandle), notificationBiConsumer, resultBiConsumer);
+            ParamsBuilder @params = new ParamsBuilder().SymbolListOrAsteric(symbols);
+            string channel = string.Format("ticker/price/{0}", speed);
+            
+            MakeSubscriptionWithInterceptors<WSCandle>(channel, @params, notificationAction, resultAction);
         }
-
-        public override void SubscribeToMiniTickerInBatches(BiConsumer<Dictionary<string, WSCandle>, NotificationType> notificationBiConsumer, TickerSpeed speed, IList<string> symbols, BiConsumer<IList<string>, CryptomarketSDKException> resultBiConsumer)
+        public void SubscribeToMiniTickerInBatches(Action<Dictionary<string, WSCandle>, NotificationType> notificationAction, TickerSpeed speed, IList<string> symbols, Action<IList<string>, CryptomarketSDKException> resultAction)
         {
-            ParamsBuilder params = new ParamsBuilder().SymbolListOrAsteric(symbols);
-            string channel = String.Format("ticker/price/%s/batch", speed);
-            MakeSubscriptionWithInterceptors(channel, @params, typeof(WSCandle), notificationBiConsumer, resultBiConsumer);
+            ParamsBuilder @params = new ParamsBuilder().SymbolListOrAsteric(symbols);
+            string channel = string.Format("ticker/price/{0}/batch", speed);
+            
+            MakeSubscriptionWithInterceptors<WSCandle>(channel, @params, notificationAction, resultAction);
         }
-
-        public override void SubscribeToTicker(BiConsumer<Dictionary<string, WSTicker>, NotificationType> notificationBiConsumer, TickerSpeed speed, IList<string> symbols, BiConsumer<IList<string>, CryptomarketSDKException> resultBiConsumer)
+        public void SubscribeToTicker(Action<Dictionary<string, WSTicker>, NotificationType> notificationAction, TickerSpeed speed, IList<string> symbols, Action<IList<string>, CryptomarketSDKException> resultAction)
         {
-            ParamsBuilder params = new ParamsBuilder().SymbolListOrAsteric(symbols);
-            string channel = String.Format("ticker/%s", speed);
-            MakeSubscriptionWithInterceptors(channel, @params, typeof(WSTicker), notificationBiConsumer, resultBiConsumer);
+            ParamsBuilder @params = new ParamsBuilder().SymbolListOrAsteric(symbols);
+            string channel = string.Format("ticker/{0}", speed);
+            
+            MakeSubscriptionWithInterceptors<WSTicker>(channel, @params, notificationAction, resultAction);
         }
-
-        public override void SubscribeToTickerInBatches(BiConsumer<Dictionary<string, WSTicker>, NotificationType> notificationBiConsumer, TickerSpeed speed, IList<string> symbols, BiConsumer<IList<string>, CryptomarketSDKException> resultBiConsumer)
+        public void SubscribeToTickerInBatches(Action<Dictionary<string, WSTicker>, NotificationType> notificationAction, TickerSpeed speed, IList<string> symbols, Action<IList<string>, CryptomarketSDKException> resultAction)
         {
-            ParamsBuilder params = new ParamsBuilder().SymbolListOrAsteric(symbols);
-            string channel = String.Format("ticker/%s/batch", speed);
-            MakeSubscriptionWithInterceptors(channel, @params, typeof(WSTicker), notificationBiConsumer, resultBiConsumer);
+            ParamsBuilder @params = new ParamsBuilder().SymbolListOrAsteric(symbols);
+            string channel = string.Format("ticker/{0}/batch", speed);
+            
+            MakeSubscriptionWithInterceptors<WSTicker>(channel, @params, notificationAction, resultAction);
         }
-
-        public override void SubscribeToFullOrderBook(BiConsumer<Dictionary<string, WSOrderBook>, NotificationType> notificationBiConsumer, IList<string> symbols, BiConsumer<IList<string>, CryptomarketSDKException> resultBiConsumer)
+        public void SubscribeToFullOrderBook(Action<Dictionary<string, WSOrderBook>, NotificationType> notificationAction, IList<string> symbols, Action<IList<string>, CryptomarketSDKException> resultAction)
         {
-            ParamsBuilder params = new ParamsBuilder().SymbolList(symbols);
+            ParamsBuilder @params = new ParamsBuilder().SymbolList(symbols);
             string channel = "orderbook/full";
-            MakeSubscriptionWithInterceptors(channel, @params, typeof(WSOrderBook), notificationBiConsumer, resultBiConsumer);
+            
+            MakeSubscriptionWithInterceptors<WSOrderBook>(channel, @params, notificationAction, resultAction);
         }
-
-        public override void SubscribeToPartialOrderBook(BiConsumer<Dictionary<string, WSOrderBook>, NotificationType> notificationBiConsumer, Depth depth, OBSpeed speed, IList<string> symbols, BiConsumer<IList<string>, CryptomarketSDKException> resultBiConsumer)
+        public void SubscribeToPartialOrderBook(Action<Dictionary<string, WSOrderBook>, NotificationType> notificationAction, Depth depth, OBSpeed speed, IList<string> symbols, Action<IList<string>, CryptomarketSDKException> resultAction)
         {
-            ParamsBuilder params = new ParamsBuilder().SymbolListOrAsteric(symbols);
-            string channel = String.Format("orderbook/%s/%s", depth, speed);
-            MakeSubscriptionWithInterceptors(channel, @params, typeof(WSOrderBook), notificationBiConsumer, resultBiConsumer);
+            ParamsBuilder @params = new ParamsBuilder().SymbolListOrAsteric(symbols);
+            string channel = string.Format("orderbook/{0}/{1}", depth, speed);
+            
+            MakeSubscriptionWithInterceptors<WSOrderBook>(channel, @params, notificationAction, resultAction);
         }
-
-        public override void SubscribeToPartialOrderBookInBatches(BiConsumer<Dictionary<string, WSOrderBook>, NotificationType> notificationBiConsumer, Depth depth, OBSpeed speed, IList<string> symbols, BiConsumer<IList<string>, CryptomarketSDKException> resultBiConsumer)
+        public void SubscribeToPartialOrderBookInBatches(Action<Dictionary<string, WSOrderBook>, NotificationType> notificationAction, Depth depth, OBSpeed speed, IList<string> symbols, Action<IList<string>, CryptomarketSDKException> resultAction)
         {
-            ParamsBuilder params = new ParamsBuilder().SymbolListOrAsteric(symbols);
-            string channel = String.Format("orderbook/%s/%s/batch", depth, speed);
-            MakeSubscriptionWithInterceptors(channel, @params, typeof(WSOrderBook), notificationBiConsumer, resultBiConsumer);
+            ParamsBuilder @params = new ParamsBuilder().SymbolListOrAsteric(symbols);
+            string channel = string.Format("orderbook/{0}/{0}/batch", depth, speed);
+            
+            MakeSubscriptionWithInterceptors<WSOrderBook>(channel, @params, notificationAction, resultAction);
         }
-
-        public override void SubscribeToTopOfOrderBook(BiConsumer<Dictionary<string, WSOrderBookTop>, NotificationType> notificationBiConsumer, OBSpeed speed, IList<string> symbols, BiConsumer<IList<string>, CryptomarketSDKException> resultBiConsumer)
+        public void SubscribeToTopOfOrderBook(Action<Dictionary<string, WSOrderBookTop>, NotificationType> notificationAction, OBSpeed speed, IList<string> symbols, Action<IList<string>, CryptomarketSDKException> resultAction)
         {
-            ParamsBuilder params = new ParamsBuilder().SymbolListOrAsteric(symbols);
-            string channel = String.Format("orderbook/top/%s", speed);
-            MakeSubscriptionWithInterceptors(channel, @params, typeof(WSOrderBookTop), notificationBiConsumer, resultBiConsumer);
+            ParamsBuilder @params = new ParamsBuilder().SymbolListOrAsteric(symbols);
+            string channel = string.Format("orderbook/top/{0}", speed);
+            
+            MakeSubscriptionWithInterceptors<WSOrderBookTop>(channel, @params, notificationAction, resultAction);
         }
-
-        public override void SubscribeToTopOfOrderBookInBatches(BiConsumer<Dictionary<string, WSOrderBookTop>, NotificationType> notificationBiConsumer, OBSpeed speed, IList<string> symbols, BiConsumer<IList<string>, CryptomarketSDKException> resultBiConsumer)
+        public void SubscribeToTopOfOrderBookInBatches(Action<Dictionary<string, WSOrderBookTop>, NotificationType> notificationAction, OBSpeed speed, IList<string> symbols, Action<IList<string>, CryptomarketSDKException> resultAction)
         {
-            ParamsBuilder params = new ParamsBuilder().SymbolListOrAsteric(symbols);
-            string channel = String.Format("orderbook/top/%s/batch", speed);
-            MakeSubscriptionWithInterceptors(channel, @params, typeof(WSOrderBookTop), notificationBiConsumer, resultBiConsumer);
+            ParamsBuilder @params = new ParamsBuilder().SymbolListOrAsteric(symbols);
+            string channel = string.Format("orderbook/top/{0}/batch", speed);
+            
+            MakeSubscriptionWithInterceptors<WSOrderBookTop>(channel, @params, notificationAction, resultAction);
         }
     }
 }

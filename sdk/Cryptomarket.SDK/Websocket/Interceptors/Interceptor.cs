@@ -1,6 +1,6 @@
 using Cryptomarket.SDK.Models;
 
-namespace Cryptomarket.SDK.Websocket.Interceptor
+namespace Cryptomarket.SDK.Websocket.Interceptors
 {
     public abstract class Interceptor
     {

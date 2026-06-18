@@ -1,48 +1,16 @@
-using Java.Math;
-using Java.Util;
-using Cryptomarket.SDK;
 using Cryptomarket.SDK.Exceptions;
 using Cryptomarket.SDK.Models;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
-using static Cryptomarket.SDK.Websocket.AccountType;
-using static Cryptomarket.SDK.Websocket.ContingencyType;
-using static Cryptomarket.SDK.Websocket.Depth;
-using static Cryptomarket.SDK.Websocket.IdentifyBy;
-using static Cryptomarket.SDK.Websocket.NotificationType;
-using static Cryptomarket.SDK.Websocket.OBSpeed;
-using static Cryptomarket.SDK.Websocket.OrderBy;
-using static Cryptomarket.SDK.Websocket.OrderStatus;
-using static Cryptomarket.SDK.Websocket.OrderType;
-using static Cryptomarket.SDK.Websocket.Period;
-using static Cryptomarket.SDK.Websocket.PriceSpeed;
-using static Cryptomarket.SDK.Websocket.ReportType;
-using static Cryptomarket.SDK.Websocket.Side;
-using static Cryptomarket.SDK.Websocket.Sort;
-using static Cryptomarket.SDK.Websocket.SortBy;
-using static Cryptomarket.SDK.Websocket.SubAccountStatus;
-using static Cryptomarket.SDK.Websocket.SubAccountTransferType;
-using static Cryptomarket.SDK.Websocket.SubscriptionMode;
-using static Cryptomarket.SDK.Websocket.TickerSpeed;
-using static Cryptomarket.SDK.Websocket.TimeInForce;
-using static Cryptomarket.SDK.Websocket.TransactionStatus;
-using static Cryptomarket.SDK.Websocket.TransactionSubtype;
-using static Cryptomarket.SDK.Websocket.TransactionType;
-using static Cryptomarket.SDK.Websocket.UseOffchain;
-using static Cryptomarket.SDK.Websocket.HttpMethod;
 
 namespace Cryptomarket.SDK.Websocket
 {
     public class OrderbookCache
     {
-        private Adapter adapter = new Adapter();
-        private Dictionary<string, OrderBook> orderbooks = new HashMap<string, OrderBook>();
-        private Dictionary<string, OrderBookState> orderbookStates = new HashMap<string, OrderBookState>();
         private int ASCENDING = 0;
         private int DESCENDING = 1;
+        private Adapter adapter = new Adapter();
+        private Dictionary<string, OrderBook> orderbooks = [];
+        private Dictionary<string, OrderBookState> orderbookStates = [];        
+
         public virtual void Update(string method, string key, WSJsonResponse response)
         {
             switch (method)
@@ -50,13 +18,13 @@ namespace Cryptomarket.SDK.Websocket
                 case "snapshotOrderbook":
                     try
                     {
-                        OrderBook orderbook = adapter.ObjectFromValue(response.GetParams(), typeof(OrderBook));
-                        orderbookStates.Put(key, OrderBookState.UPDATING);
-                        orderbooks.Put(key, orderbook);
+                        OrderBook orderbook = adapter.ObjectFromValue<OrderBook>(response.Parameters);
+                        orderbookStates.Add(key, OrderBookState.UPDATING);
+                        orderbooks.Add(key, orderbook);
                     }
-                    catch (ParseException e)
+                    catch (ParseException)
                     {
-                        orderbookStates.Put(key, OrderBookState.BROKEN_PARSE_ERROR);
+                        orderbookStates.Add(key, OrderBookState.BROKEN_PARSE_ERROR);
                     }
 
                     break;
@@ -66,34 +34,30 @@ namespace Cryptomarket.SDK.Websocket
                     OrderBook orderbookUpdate;
                     try
                     {
-                        orderbookUpdate = adapter.ObjectFromValue(response.GetParams(), typeof(OrderBook));
+                        orderbookUpdate = adapter.ObjectFromValue<OrderBook>(response.Parameters);
                     }
-                    catch (ParseException e)
+                    catch (ParseException)
                     {
-                        orderbookStates.Put(key, OrderBookState.BROKEN_PARSE_ERROR);
+                        orderbookStates.Add(key, OrderBookState.BROKEN_PARSE_ERROR);
                         return;
                     }
 
                     OrderBook oldOrderbook = orderbooks[key];
-                    if (orderbookUpdate.GetSequence() - oldOrderbook.GetSequence() != 1)
+
+                    if (orderbookUpdate.Sequence - oldOrderbook.Sequence != 1)
                     {
-                        orderbookStates.Put(key, OrderBookState.BROKEN);
+                        orderbookStates.Add(key, OrderBookState.BROKEN);
                         return;
                     }
 
-                    oldOrderbook.SetTimestamp(orderbookUpdate.GetTimestamp());
-                    oldOrderbook.SetSequence(orderbookUpdate.GetSequence());
-                    IList<OrderbookLevel> asksUpdates = orderbookUpdate.GetAsk();
-                    if (asksUpdates != null)
-                    {
-                        oldOrderbook.SetAsk(UpdateBookSide(oldOrderbook.GetAsk(), asksUpdates, ASCENDING));
-                    }
+                    oldOrderbook.Timestamp = orderbookUpdate.Timestamp;
+                    oldOrderbook.Sequence = orderbookUpdate.Sequence;
 
-                    IList<OrderbookLevel> bidsUpdates = orderbookUpdate.GetBid();
-                    if (bidsUpdates != null)
-                    {
-                        oldOrderbook.SetBid(UpdateBookSide(oldOrderbook.GetBid(), bidsUpdates, DESCENDING));
-                    }
+                    if (orderbookUpdate.Ask != null)
+                        orderbookUpdate.Ask = UpdateBookSide(oldOrderbook.Ask, orderbookUpdate.Ask, ASCENDING);
+
+                    if (orderbookUpdate.Bid != null)
+                        orderbookUpdate.Bid = UpdateBookSide(oldOrderbook.Bid, orderbookUpdate.Bid, DESCENDING);
 
                     break;
             }
@@ -101,12 +65,13 @@ namespace Cryptomarket.SDK.Websocket
 
         private IList<OrderbookLevel> UpdateBookSide(IList<OrderbookLevel> oldList, IList<OrderbookLevel> updateList, int sortDirection)
         {
-            IList<OrderbookLevel> newList = new List<OrderbookLevel>();
+            IList<OrderbookLevel> newList = [];
             OrderbookLevel oldEntry;
             int oldIdx = 0;
             OrderbookLevel updateEntry;
             int updateIdx = 0;
             int order;
+
             while (oldIdx < oldList.Count && updateIdx < updateList.Count)
             {
                 updateEntry = updateList[updateIdx];
@@ -164,14 +129,14 @@ namespace Cryptomarket.SDK.Websocket
 
         private bool ZeroSize(OrderbookLevel entry)
         {
-            BigDecimal size = new BigDecimal(entry.GetAmount());
+            BigDecimal size = new BigDecimal(entry.Amount);
             return size.CompareTo(new BigDecimal("0.00")) == 0;
         }
 
         private int PriceOrder(OrderbookLevel oldEntry, OrderbookLevel updateEntry, int sortDirection)
         {
-            BigDecimal oldPrice = new BigDecimal(oldEntry.GetPrice());
-            BigDecimal updatePrice = new BigDecimal(updateEntry.GetPrice());
+            BigDecimal oldPrice = new BigDecimal(oldEntry.Price);
+            BigDecimal updatePrice = new BigDecimal(updateEntry.Price);
             int direction = oldPrice.CompareTo(updatePrice);
             if (sortDirection.Equals(ASCENDING))
                 return -direction;
@@ -193,7 +158,7 @@ namespace Cryptomarket.SDK.Websocket
 
         public virtual void WaitOrderbook(string key)
         {
-            orderbookStates.Put(key, OrderBookState.WAITING);
+            orderbookStates.Add(key, OrderBookState.WAITING);
         }
 
         public virtual bool OrderbookWaiting(string key)

@@ -3,7 +3,7 @@ using Java.Util;
 using Java.Util.Function;
 using Cryptomarket.SDK;
 using Cryptomarket.SDK.Exceptions;
-using Cryptomarket.SDK.Websocket.Interceptor;
+using Cryptomarket.SDK.Websocket.Interceptors;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -42,12 +42,10 @@ namespace Cryptomarket.SDK.Websocket
         private string apiSecret;
         private string apiKey;
         private int window;
-        private Runnable afterAuth = () =>
+        private Action afterAuth = () => { };
+        private Action authOnConnect = () =>
         {
-        };
-        private Runnable authOnConnect = () =>
-        {
-            this.Authenticate((success, exception) =>
+            Authenticate((success, exception) =>
             {
                 if (exception != null)
                 {
@@ -60,7 +58,7 @@ namespace Cryptomarket.SDK.Websocket
                     GetOnFailure().Accept(new CryptomarketSDKException("authorization failed: unsuccessful authorization request"));
                 }
 
-                afterAuth.Run();
+                afterAuth.Invoke();
             });
         };
         public AuthClient(string url, string apiKey, string apiSecret, int window) : base(url)
@@ -71,32 +69,29 @@ namespace Cryptomarket.SDK.Websocket
             base.OnConnect(authOnConnect);
         }
 
-        public override void OnConnect(Runnable onConnect)
+        public override void OnConnect(Action onConnect)
         {
             afterAuth = onConnect;
         }
 
-        public AuthClient(string url, string apiKey, string apiSecret) : this(url, apiKey, apiSecret, 0)
+        public AuthClient(string url, string apiKey, string apiSecret) : this(url, apiKey, apiSecret, 0) { }
+        public virtual void Authenticate(Action<bool, CryptomarketSDKException> resultBiConsumer)
         {
-        }
-
-        public virtual void Authenticate(BiConsumer<bool, CryptomarketSDKException> resultBiConsumer)
-        {
-            Dictionary<string, object> params = new HashMap();
-            long timestamp = System.CurrentTimeMillis();
-            string strTimestamp = String.Format("%d", timestamp);
-            @params.Put("type", "HS256");
-            @params.Put("api_key", apiKey);
-            @params.Put("timestamp", timestamp);
+            Dictionary<string, object> @params = [];
+            long timestamp = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+            string strTimestamp = string.Format("{0:D9}", timestamp);
+            @params.Add("type", "HS256");
+            @params.Add("api_key", apiKey);
+            @params.Add("timestamp", timestamp);
             string toSign = strTimestamp;
             if (window != 0)
             {
-                @params.Put("window", window);
+                @params.Add("window", window);
                 toSign += window.ToString();
             }
 
-            @params.Put("signature", HMAC.Sign(apiSecret, toSign));
-            Interceptor interceptor = (resultBiConsumer == null) ? null : InterceptorFactory.NewOfWSResponseObject(resultBiConsumer, typeof(bool));
+            @params.Add("signature", HMAC.Sign(apiSecret, toSign));
+            Interceptor interceptor = (resultBiConsumer == null) ? null : InterceptorFactory.NewOfWSResponseObject<bool>(resultBiConsumer);
             SendById("login", @params, interceptor);
         }
     }

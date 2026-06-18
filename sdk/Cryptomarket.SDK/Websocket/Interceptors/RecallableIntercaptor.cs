@@ -1,5 +1,5 @@
 
-namespace Cryptomarket.SDK.Websocket.Interceptor
+namespace Cryptomarket.SDK.Websocket.Interceptors
 {
     public class RecallableIntercaptor(Interceptor interceptor, int callCount = 1)
     {

@@ -14,7 +14,7 @@ using Org.Jetbrains.Annotations;
 using Cryptomarket.SDK;
 using Cryptomarket.SDK.Exceptions;
 using Cryptomarket.SDK.Models;
-using Cryptomarket.Exceptions;
+using Cryptomarket.SDK.Exceptions;
 
 namespace Cryptomarket.SDK.Rest
 {

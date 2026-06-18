@@ -1,5 +1,5 @@
 
-namespace Cryptomarket.Exceptions
+namespace Cryptomarket.SDK.Exceptions
 {
     /// <summary>
     /// The base exception of com.cryptomarket.sdk
