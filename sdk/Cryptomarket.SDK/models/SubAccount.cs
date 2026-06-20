@@ -1,6 +1,6 @@
-using Cryptomarket.SDK.Params;
+using CryptoMarket.SDK.Params;
 
-namespace Cryptomarket.SDK.Models
+namespace CryptoMarket.SDK.Models
 {
     public class SubAccount
     {

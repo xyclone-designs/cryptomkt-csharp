@@ -1,12 +1,13 @@
-using Cryptomarket.SDK.Exceptions;
-using Cryptomarket.SDK.Models;
-using Cryptomarket.SDK.Params;
+using CryptoMarket.SDK.Exceptions;
+using CryptoMarket.SDK.Models;
+using CryptoMarket.SDK.Params;
+using System.Text.Json;
 
-namespace Cryptomarket.SDK.Websocket.Interceptors
+namespace CryptoMarket.SDK.Websocket.Interceptors
 {
     public class InterceptorFactory
     {
-        public static Interceptor NewOfWSResponseObject<T>(Action<T?, CryptomarketSDKException?> resultAction)
+        public static Interceptor NewOfWSResponseObject<T>(Action<T?, CryptoMarketSDKException?> resultAction)
         {
             return new InterceptorOfWSResponseObject<T>(resultAction);
         }
@@ -18,24 +19,24 @@ namespace Cryptomarket.SDK.Websocket.Interceptors
         {
             return new InterceptorOfChanneledWSResponse<T>(notificationAction);
         }
-        public static Interceptor NewOfWSResponseList<T>(Action<IList<T>?, CryptomarketSDKException?> resultAction)
+        public static Interceptor NewOfWSResponseList<T>(Action<IList<T>?, CryptoMarketSDKException?> resultAction)
         {
             return new InterceptorOfWSResponseList<T>(resultAction);
         }
-        public static Interceptor NewOfSubscriptionResponse(Action<IList<string>?, CryptomarketSDKException?> resultAction)
+        public static Interceptor NewOfSubscriptionResponse(Action<IList<string>?, CryptoMarketSDKException?> resultAction)
         {
             return new InterceptorOfSubscriptionResponse(resultAction);
         }
 
-        private sealed class InterceptorOfWSResponseObject<T>(Action<T?, CryptomarketSDKException?> resultAction) : Interceptor
+        private sealed class InterceptorOfWSResponseObject<T>(Action<T?, CryptoMarketSDKException?> resultAction) : Interceptor
         {
-            private readonly Action<T?, CryptomarketSDKException?> ResultAction = resultAction;
+            private readonly Action<T?, CryptoMarketSDKException?> ResultAction = resultAction;
 
             public override void MakeCall(WSJsonResponse response)
             {
                 if (response.Error is ErrorBody error)
                 {
-                    ResultAction.Invoke(default, new CryptomarketAPIException(error));
+                    ResultAction.Invoke(default, new CryptoMarketAPIException(error));
                     return;
                 }
 
@@ -43,7 +44,7 @@ namespace Cryptomarket.SDK.Websocket.Interceptors
 
                 try
                 {
-                    result = Adapter.ObjectFromValue<T>(response.Result ?? throw new ParseException("Result is null"));
+                    result = (T)(response.Result ?? throw new ParseException("Result is null"));
                 }
                 catch (ParseException e)
                 {
@@ -65,17 +66,17 @@ namespace Cryptomarket.SDK.Websocket.Interceptors
                 {
                     if (response.Snapshot != null)
                     {
-                        Dictionary<string, IList<T>> data = Adapter.ListMapFromObject<T>(response.Snapshot);
+                        Dictionary<string, IList<T>> data = (Dictionary<string, IList<T>>)response.Snapshot;
                         NotificationAction.Invoke(data, NotificationType.SNAPSHOT);
                     }
                     else if (response.Update != null)
                     {
-                        Dictionary<string, IList<T>> data = Adapter.ListMapFromObject<T>(response.Update);
+                        Dictionary<string, IList<T>> data = (Dictionary<string, IList<T>>)response.Update;
                         NotificationAction.Invoke(data, NotificationType.UPDATE);
                     }
                     else
                     {
-                        Dictionary<string, IList<T>> data = Adapter.ListMapFromObject<T>(response.Data ?? throw new ParseException("Data is null"));
+                        Dictionary<string, IList<T>> data = (Dictionary<string, IList<T>>)(response.Data ?? throw new ParseException("Data is null"));
                         NotificationAction.Invoke(data, NotificationType.DATA);
                     }
                 }
@@ -96,17 +97,17 @@ namespace Cryptomarket.SDK.Websocket.Interceptors
                 {
                     if (response.Snapshot != null)
                     {
-                        Dictionary<string, T> data = Adapter.MapFromValue<T>(response.Snapshot);
+                        Dictionary<string, T> data = (Dictionary<string, T>)response.Snapshot;
                         NotificationAction.Invoke(data, NotificationType.SNAPSHOT);
                     }
                     else if (response.Update != null)
                     {
-                        Dictionary<string, T> data = Adapter.MapFromValue<T>(response.Update);
+                        Dictionary<string, T> data = (Dictionary<string, T>)response.Update;
                         NotificationAction.Invoke(data, NotificationType.UPDATE);
                     }
                     else
                     {
-                        Dictionary<string, T> data = Adapter.MapFromValue<T>(response.Data ?? throw new ParseException("Data is null"));
+                        Dictionary<string, T> data = (Dictionary<string, T>)(response.Data ?? throw new ParseException("Data is null"));
                         NotificationAction.Invoke(data, NotificationType.DATA);
                     }
                 }
@@ -117,15 +118,15 @@ namespace Cryptomarket.SDK.Websocket.Interceptors
             }
         }
 
-        private sealed class InterceptorOfWSResponseList<T>(Action<IList<T>?, CryptomarketSDKException?> resultAction) : Interceptor
+        private sealed class InterceptorOfWSResponseList<T>(Action<IList<T>?, CryptoMarketSDKException?> resultAction) : Interceptor
         {
-            private readonly Action<IList<T>?, CryptomarketSDKException?> ResultAction = resultAction;
+            private readonly Action<IList<T>?, CryptoMarketSDKException?> ResultAction = resultAction;
 
             public override void MakeCall(WSJsonResponse response)
             {
                 if (response.Error is ErrorBody error)
                 {
-                    ResultAction.Invoke(null, new CryptomarketAPIException(error));
+                    ResultAction.Invoke(null, new CryptoMarketAPIException(error));
                     return;
                 }
 
@@ -133,7 +134,7 @@ namespace Cryptomarket.SDK.Websocket.Interceptors
 
                 try
                 {
-                    result = Adapter.ListFromValue<T>(response.Result ?? throw new ParseException("Result is null"));
+                    result = (IList<T>)(response.Result ?? throw new ParseException("Result is null"));
                 }
                 catch (ParseException e)
                 {
@@ -145,15 +146,15 @@ namespace Cryptomarket.SDK.Websocket.Interceptors
             }
         }
 
-        private sealed class InterceptorOfSubscriptionResponse(Action<IList<string>?, CryptomarketSDKException?> resultAction) : Interceptor
+        private sealed class InterceptorOfSubscriptionResponse(Action<IList<string>?, CryptoMarketSDKException?> resultAction) : Interceptor
         {
-            private readonly Action<IList<string>?, CryptomarketSDKException?> ResultAction = resultAction;
+            private readonly Action<IList<string>?, CryptoMarketSDKException?> ResultAction = resultAction;
 
             public override void MakeCall(WSJsonResponse response)
             {
                 if (response.Error is ErrorBody error)
                 {
-                    ResultAction.Invoke(null, new CryptomarketAPIException(error));
+                    ResultAction.Invoke(null, new CryptoMarketAPIException(error));
                     return;
                 }
 
@@ -161,7 +162,8 @@ namespace Cryptomarket.SDK.Websocket.Interceptors
 
                 try
                 {
-                    result = Adapter.StringlistFromStringMap(response.Result ?? throw new ParseException("Result is null"), "subscriptions");
+                    result = (IList<string>)(response.Result ?? throw new ParseException("Result is null"));
+                    // result = (IList<string>)(response.Result ?? throw new ParseException("Result is null"))["subscriptions"];
                 }
                 catch (ParseException e)
                 {

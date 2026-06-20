@@ -1,12 +1,12 @@
-using Cryptomarket.SDK.Models;
-using Cryptomarket.SDK.Params;
+using CryptoMarket.SDK.Models;
+using CryptoMarket.SDK.Params;
 
-namespace Cryptomarket.SDK.Rest
+namespace CryptoMarket.SDK.Rest
 {
     /// <summary>
     /// Rest Client Interface for cryptomarket API V3.
     /// </summary>
-    public interface ICryptomarketRestClient : IDisposable
+    public interface ICryptoMarketRestClient : IDisposable
     {
         void ChangeCredentials(string apiKey, string apiSecret);
         void ChangeWindow(int window);
@@ -102,11 +102,11 @@ namespace Cryptomarket.SDK.Rest
         IList<Fee> GetBulkEstimateWithdrawalFees(IList<FeeRequest> feeRequests);
         string GetWithdrawalFeesHash();
         // public String getEstimateDepositFee(String currency, String amount, @Nullable
-        // String networkCode) throws CryptomarketSDKException;
+        // String networkCode) throws CryptoMarketSDKException;
         // public String getEstimateDepositFee(ParamsBuilder paramsBuilder) throws
-        // CryptomarketSDKException;
+        // CryptoMarketSDKException;
         // public List<Fee> getBulkEstimateDepositFees(List<FeeRequest> feeRequests)
-        // throws CryptomarketSDKException;
+        // throws CryptoMarketSDKException;
         IList<string> ConvertBetweenCurrencies(string fromCurrency, string toCurrency, string amount);
         IList<string> ConvertBetweenCurrencies(ParamsBuilder paramsBuilder);
         bool CheckCryptoAddressBelongsToCurrentAccount(string address);

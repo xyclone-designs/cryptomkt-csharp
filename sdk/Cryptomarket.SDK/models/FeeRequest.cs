@@ -1,5 +1,5 @@
 
-namespace Cryptomarket.SDK.Models
+namespace CryptoMarket.SDK.Models
 {
     public class FeeRequest
     {

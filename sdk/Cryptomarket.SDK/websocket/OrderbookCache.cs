@@ -1,13 +1,15 @@
-using Cryptomarket.SDK.Exceptions;
-using Cryptomarket.SDK.Models;
+using CryptoMarket.SDK.Exceptions;
+using CryptoMarket.SDK.Models;
 
-namespace Cryptomarket.SDK.Websocket
+using System.Text.Json;
+using System.Text.Json.Nodes;
+
+namespace CryptoMarket.SDK.Websocket
 {
     public class OrderbookCache
     {
         private int ASCENDING = 0;
         private int DESCENDING = 1;
-        private Adapter adapter = new Adapter();
         private Dictionary<string, OrderBook> orderbooks = [];
         private Dictionary<string, OrderBookState> orderbookStates = [];        
 
@@ -18,7 +20,7 @@ namespace Cryptomarket.SDK.Websocket
                 case "snapshotOrderbook":
                     try
                     {
-                        OrderBook orderbook = adapter.ObjectFromValue<OrderBook>(response.Parameters);
+                        OrderBook orderbook = JsonSerializer.Deserialize<OrderBook>(response.Parameters.ToString());
                         orderbookStates.Add(key, OrderBookState.UPDATING);
                         orderbooks.Add(key, orderbook);
                     }
@@ -34,7 +36,7 @@ namespace Cryptomarket.SDK.Websocket
                     OrderBook orderbookUpdate;
                     try
                     {
-                        orderbookUpdate = adapter.ObjectFromValue<OrderBook>(response.Parameters);
+                        orderbookUpdate = JsonSerializer.Deserialize<OrderBook>(response.Parameters.ToString());
                     }
                     catch (ParseException)
                     {
@@ -129,17 +131,19 @@ namespace Cryptomarket.SDK.Websocket
 
         private bool ZeroSize(OrderbookLevel entry)
         {
-            BigDecimal size = new BigDecimal(entry.Amount);
-            return size.CompareTo(new BigDecimal("0.00")) == 0;
+            BigDecimal size = BigDecimal.Parse(entry.Amount);
+            return size.CompareTo(BigDecimal.Parse("0.00")) == 0;
         }
 
         private int PriceOrder(OrderbookLevel oldEntry, OrderbookLevel updateEntry, int sortDirection)
         {
-            BigDecimal oldPrice = new BigDecimal(oldEntry.Price);
-            BigDecimal updatePrice = new BigDecimal(updateEntry.Price);
+            BigDecimal oldPrice = BigDecimal.Parse(oldEntry.Price);
+            BigDecimal updatePrice = BigDecimal.Parse(updateEntry.Price);
             int direction = oldPrice.CompareTo(updatePrice);
+
             if (sortDirection.Equals(ASCENDING))
                 return -direction;
+
             return direction;
         }
 
@@ -147,12 +151,14 @@ namespace Cryptomarket.SDK.Websocket
         {
             if (!orderbooks.ContainsKey(key))
                 return null;
+
             return orderbooks[key];
         }
 
         public virtual bool OrderbookBroken(string key)
         {
             OrderBookState currencState = orderbookStates[key];
+
             return currencState.Equals(OrderBookState.BROKEN) || currencState.Equals(OrderBookState.BROKEN_PARSE_ERROR);
         }
 

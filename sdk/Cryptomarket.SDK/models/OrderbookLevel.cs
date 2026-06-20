@@ -1,5 +1,5 @@
 
-namespace Cryptomarket.SDK.Models
+namespace CryptoMarket.SDK.Models
 {
     /// <summary>
     /// Orderbook level. A amount of able to beeing buyed or selled for a given price

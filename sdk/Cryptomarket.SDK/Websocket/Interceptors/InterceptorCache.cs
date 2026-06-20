@@ -1,5 +1,5 @@
 
-namespace Cryptomarket.SDK.Websocket.Interceptors
+namespace CryptoMarket.SDK.Websocket.Interceptors
 {
     public class InterceptorCache
     {

@@ -1,7 +1,7 @@
 
-namespace Cryptomarket.SDK.Websocket
+namespace CryptoMarket.SDK.Websocket
 {
-    public interface ICryptomarketWS : IDisposable
+    public interface ICryptoMarketWS : IDisposable
     {
         void Connect();
         

@@ -1,19 +1,20 @@
-using Cryptomarket.SDK.Models;
-using Cryptomarket.SDK.Requests;
-using Cryptomarket.SDK.Params;
-using Cryptomarket.SDK.Exceptions;
+using CryptoMarket.SDK.Exceptions;
+using CryptoMarket.SDK.Models;
+using CryptoMarket.SDK.Params;
+using CryptoMarket.SDK.Requests;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
-namespace Cryptomarket.SDK.Rest
+namespace CryptoMarket.SDK.Rest
 {
-    public class CryptomarketRestClientImpl : ICryptomarketRestClient
+    public class CryptoMarketRestClientImpl : ICryptoMarketRestClient
     {
-        CloseableHttpClient httpClient;
-        Adapter adapter = new Adapter();
+        ICloseableHttpClient httpClient;
 
-        public CryptomarketRestClientImpl() : this("", "") { }
-        public CryptomarketRestClientImpl(HttpClient client) : this("", "", client) { }
-        public CryptomarketRestClientImpl(string apiKey, string apiSecret) : this(apiKey, apiSecret, new HttpClient()) { }
-        public CryptomarketRestClientImpl(string apiKey, string apiSecret, HttpClient client)
+        public CryptoMarketRestClientImpl() : this("", "") { }
+        public CryptoMarketRestClientImpl(HttpClient client) : this("", "", client) { }
+        public CryptoMarketRestClientImpl(string apiKey, string apiSecret) : this(apiKey, apiSecret, new HttpClient()) { }
+        public CryptoMarketRestClientImpl(string apiKey, string apiSecret, HttpClient client)
         {
             string url = "https://api.exchange.cryptomkt.com";
             string apiVersion = "/api/3/";
@@ -37,12 +38,13 @@ namespace Cryptomarket.SDK.Rest
                 .PreferredNetwork(preferredNetwork)
                 .Build();
             string jsonResponse = httpClient.PublicGet("public/currency", @params);
-            return adapter.MapFromJson<Currency>(jsonResponse);
+            
+            return JsonSerializer.Deserialize<Dictionary<string, Currency>>(jsonResponse);
         }
         public virtual Currency GetCurrency(string currency)
         {
             string jsonResponse = httpClient.PublicGet(string.Format("public/currency/{0}", currency), null);
-            return adapter.ObjectFromJson<Currency>(jsonResponse);
+            return JsonSerializer.Deserialize<Currency>(jsonResponse);
         }
         public virtual Dictionary<string, Symbol> GetSymbols(IList<string> symbols)
         {
@@ -50,12 +52,14 @@ namespace Cryptomarket.SDK.Rest
                 .Symbols(symbols)
                 .Build();
             string jsonResponse = httpClient.PublicGet("public/symbol", @params);
-            return adapter.MapFromJson<Symbol>(jsonResponse);
+            
+            return JsonSerializer.Deserialize<Dictionary<string, Symbol>>(jsonResponse);
         }
         public virtual Symbol GetSymbol(string symbol)
         {
             string jsonResponse = httpClient.PublicGet(string.Format("public/symbol/{0}", symbol), null);
-            return adapter.ObjectFromJson<Symbol>(jsonResponse);
+            
+            return JsonSerializer.Deserialize<Symbol>(jsonResponse);
         }
         public virtual Dictionary<string, Ticker> GetTickers(IList<string> symbols)
         {
@@ -64,13 +68,13 @@ namespace Cryptomarket.SDK.Rest
                 .Build();
             string jsonResponse = httpClient.PublicGet("public/ticker", @params);
 
-            return adapter.MapFromJson<Ticker>(jsonResponse);
+            return JsonSerializer.Deserialize<Dictionary<string, Ticker>>(jsonResponse);
         }
         public virtual Ticker GetTicker(string symbol)
         {
             string jsonResponse = httpClient.PublicGet(string.Format("public/ticker/{0}", symbol), null);
 
-            return adapter.ObjectFromJson<Ticker>(jsonResponse);
+            return JsonSerializer.Deserialize<Ticker>(jsonResponse);
         }
         public virtual Ticker GetTickerBySymbol(string symbol)
         {
@@ -91,7 +95,7 @@ namespace Cryptomarket.SDK.Rest
             paramsBuilder.CheckRequired([ArgNames.TO]);
             string jsonResponse = httpClient.PublicGet("public/price/rate", paramsBuilder.Build());
 
-            return adapter.MapFromJson<Price>(jsonResponse);
+            return JsonSerializer.Deserialize<Dictionary<string, Price>>(jsonResponse);
         }
         public virtual Dictionary<string, PriceHistory> GetPricesHistory(string to, string from, string until, string since, int limit, Period period, Sort sort)
         {
@@ -109,7 +113,7 @@ namespace Cryptomarket.SDK.Rest
             paramsBuilder.CheckRequired([ArgNames.TO]);
             string jsonResponse = httpClient.PublicGet("public/price/history", paramsBuilder.Build());
 
-            return adapter.MapFromJson<PriceHistory>(jsonResponse);
+            return JsonSerializer.Deserialize<Dictionary<string, PriceHistory>>(jsonResponse);
         }
         public virtual Dictionary<string, TickerPrice> GetTickerLastPrices(IList<string> symbols)
         {
@@ -117,12 +121,12 @@ namespace Cryptomarket.SDK.Rest
                 .Symbols(symbols)
                 .Build();
             string jsonResponse = httpClient.PublicGet("public/price/ticker", @params);
-            return adapter.MapFromJson<TickerPrice>(jsonResponse);
+            return JsonSerializer.Deserialize<Dictionary<string, TickerPrice>>(jsonResponse);
         }
         public virtual TickerPrice GetTickerLastPriceBySymbol(string symbol)
         {
             string jsonResponse = httpClient.PublicGet(string.Format("public/price/ticker/{0}", symbol), null);
-            return adapter.ObjectFromJson<TickerPrice>(jsonResponse);
+            return JsonSerializer.Deserialize<TickerPrice>(jsonResponse);
         }
         public virtual TickerPrice GetTickerLastPriceOfSymbol(string symbol)
         {
@@ -146,7 +150,7 @@ namespace Cryptomarket.SDK.Rest
         {
             string jsonResponse = httpClient.PublicGet("public/trades", paramsBuilder.Build());
 
-            return adapter.ListMapFromJson<PublicTrade>(jsonResponse);
+            return JsonSerializer.Deserialize<Dictionary<string, IList<PublicTrade>>>(jsonResponse);
         }
         public virtual IList<PublicTrade> GetTradesBySymbol(string symbol, Sort sort, SortBy by, string from, string till, int limit, int offset)
         {
@@ -165,7 +169,7 @@ namespace Cryptomarket.SDK.Rest
             string symbol = (string)paramsBuilder.Remove(ArgNames.SYMBOL);
             string jsonResponse = httpClient.PublicGet(string.Format("public/trades/{0}", symbol), paramsBuilder.Build());
             
-            return adapter.ListFromJson<PublicTrade>(jsonResponse);
+            return JsonSerializer.Deserialize<IList<PublicTrade>>(jsonResponse);
         }
         public virtual IList<PublicTrade> GetTradesOfSymbol(ParamsBuilder paramsBuilder)
         {
@@ -180,7 +184,7 @@ namespace Cryptomarket.SDK.Rest
         public virtual Dictionary<string, OrderBook> GetOrderBooks(ParamsBuilder paramsBuilder)
         {
             string jsonResponse = httpClient.PublicGet("public/orderbook", paramsBuilder.Build());
-            return adapter.MapFromJson<OrderBook>(jsonResponse);
+            return JsonSerializer.Deserialize<Dictionary<string, OrderBook>>(jsonResponse);
         }
         public virtual OrderBook GetOrderBookBySymbol(string symbol, int depth)
         {
@@ -202,7 +206,7 @@ namespace Cryptomarket.SDK.Rest
             string symbol = (string)paramsBuilder.Remove(ArgNames.SYMBOL);
             string jsonResponse = httpClient.PublicGet(string.Format("public/orderbook/{0}", symbol), paramsBuilder.Build());
 
-            return adapter.ObjectFromJson<OrderBook>(jsonResponse);
+            return JsonSerializer.Deserialize<OrderBook>(jsonResponse);
         }
         public virtual OrderBook GetOrderBookVolumeBySymbol(string symbol, int volume)
         {
@@ -216,7 +220,7 @@ namespace Cryptomarket.SDK.Rest
             string symbol = (string)paramsBuilder.Remove(ArgNames.SYMBOL);
             string jsonResponse = httpClient.PublicGet(string.Format("public/orderbook/{0}", symbol), paramsBuilder.Build());
 
-            return adapter.ObjectFromJson<OrderBook>(jsonResponse);
+            return JsonSerializer.Deserialize<OrderBook>(jsonResponse);
         }
         public virtual OrderBook GetOrderBookVolumeOfSymbol(ParamsBuilder paramsBuilder)
         {
@@ -240,7 +244,7 @@ namespace Cryptomarket.SDK.Rest
         {
             string jsonResponse = httpClient.PublicGet("public/candles", paramsBuilder.Build());
 
-            return adapter.ListMapFromJson<Candle>(jsonResponse);
+            return JsonSerializer.Deserialize<Dictionary<string, IList<Candle>>>(jsonResponse);
         }
         public virtual IList<Candle> GetCandlesBySymbol(string symbol, Period period, Sort sort, string from, string till, int limit, int offset)
         {
@@ -259,7 +263,7 @@ namespace Cryptomarket.SDK.Rest
             string symbol = (string)paramsBuilder.Remove(ArgNames.SYMBOL);
             string jsonResponse = httpClient.PublicGet(string.Format("public/candles/{0}", symbol), paramsBuilder.Build());
             
-            return adapter.ListFromJson<Candle>(jsonResponse);
+            return JsonSerializer.Deserialize<IList<Candle>>(jsonResponse);
         }
         public virtual IList<Candle> GetCandlesOfSymbol(ParamsBuilder paramsBuilder)
         {
@@ -281,7 +285,7 @@ namespace Cryptomarket.SDK.Rest
             paramsBuilder.CheckRequired([ArgNames.TARGET_CURRENCY]);
             string jsonResponse = httpClient.PublicGet("public/converted/candles", paramsBuilder.Build());
 
-            return adapter.ObjectFromJson<ConvertedCandles>(jsonResponse);
+            return JsonSerializer.Deserialize<ConvertedCandles>(jsonResponse);
         }
         public virtual ConvertedCandlesBySymbol GetConvertedCandlesBySymbol(string targetCurrency, string symbol, Period period, Sort sort, string from, string till, int limit, int offset)
         {
@@ -301,7 +305,7 @@ namespace Cryptomarket.SDK.Rest
             string symbol = (string)paramsBuilder.Remove(ArgNames.SYMBOL);
             string jsonResponse = httpClient.PublicGet(string.Format("public/converted/candles/{0}", symbol), paramsBuilder.Build());
 
-            return adapter.ObjectFromJson<ConvertedCandlesBySymbol>(jsonResponse);
+            return JsonSerializer.Deserialize<ConvertedCandlesBySymbol>(jsonResponse);
         }
         public virtual ConvertedCandlesBySymbol GetConvertedCandlesOfSymbol(ParamsBuilder paramsBuilder)
         {
@@ -313,12 +317,12 @@ namespace Cryptomarket.SDK.Rest
         {
             string jsonResponse = httpClient.Get("spot/balance", null);
             
-            return adapter.ListFromJson<Balance>(jsonResponse);
+            return JsonSerializer.Deserialize<IList<Balance>>(jsonResponse);
         }
         public virtual Balance GetSpotTradingBalanceByCurrency(string currency)
         {
             string jsonResponse = httpClient.Get(string.Format("spot/balance/{0}", currency), null);
-            Balance balance = adapter.ObjectFromJson<Balance>(jsonResponse);
+            Balance balance = JsonSerializer.Deserialize<Balance>(jsonResponse);
             balance.Currency = currency;
 
             return balance;
@@ -338,12 +342,12 @@ namespace Cryptomarket.SDK.Rest
                 .Build();
             string jsonResponse = httpClient.Get("spot/order", @params);
             
-            return adapter.ListFromJson<Order>(jsonResponse);
+            return JsonSerializer.Deserialize<IList<Order>>(jsonResponse);
         }
         public virtual Order GetActiveSpotOrder(string clientOrderId)
         {
             string jsonResponse = httpClient.Get(string.Format("spot/order/{0}", clientOrderId), null);
-            return adapter.ObjectFromJson<Order>(jsonResponse);
+            return JsonSerializer.Deserialize<Order>(jsonResponse);
         }
         public virtual Order CreateSpotOrder(string symbol, Side side, string quantity, string clientOrderId, OrderType orderType, string price, string stopPrice, TimeInForce timeInForce, string expireTime, bool strictValidate, bool postOnly, string takeRate, string makeRate)
         {
@@ -364,25 +368,25 @@ namespace Cryptomarket.SDK.Rest
         }
         public virtual Order CreateSpotOrder(ParamsBuilder paramsBuilder)
         {
-            string payload = adapter.MapStrStrToJson(paramsBuilder.BuildObjectMap());
+            string payload = JsonSerializer.Serialize(paramsBuilder.BuildObjectMap());
             string jsonResponse = httpClient.Post("spot/order", payload);
 
-            return adapter.ObjectFromJson<Order>(jsonResponse);
+            return JsonSerializer.Deserialize<Order>(jsonResponse);
         }
         public virtual Order CreateSpotOrder(OrderBuilder orderBuilder)
         {
-            string payload = adapter.ObjectToJson<OrderBuilder>(orderBuilder);
+            string payload = JsonSerializer.Serialize<OrderBuilder>(orderBuilder);
             string jsonResponse = httpClient.Post("spot/order", payload);
 
-            return adapter.ObjectFromJson<Order>(jsonResponse);
+            return JsonSerializer.Deserialize<Order>(jsonResponse);
         }
         public virtual IList<Order> CreateSpotOrderList(ContingencyType contingencyType, IList<OrderBuilder> orders, string orderListId)
         {
             OrderListRequest oderListRequest = new (contingencyType, orderListId, orders);
-            string payload = adapter.ObjectToJson<OrderListRequest>(oderListRequest);
+            string payload = JsonSerializer.Serialize<OrderListRequest>(oderListRequest);
             string jsonResponse = httpClient.Post("spot/order/list", payload);
             
-            return adapter.ListFromJson<Order>(jsonResponse);
+            return JsonSerializer.Deserialize<IList<Order>>(jsonResponse);
         }
         public virtual Order ReplaceSpotOrder(string clientOrderId, string newClientOrderId, string quantity, string price, string stopPrice, bool strictValidate)
         {
@@ -399,25 +403,25 @@ namespace Cryptomarket.SDK.Rest
             string clientOrderId = (string)paramsBuilder.Remove(ArgNames.CLIENT_ORDER_ID);
             string jsonResponse = httpClient.Patch(string.Format("spot/order/{0}", clientOrderId), paramsBuilder.Build());
 
-            return adapter.ObjectFromJson<Order>(jsonResponse);
+            return JsonSerializer.Deserialize<Order>(jsonResponse);
         }
         public virtual IList<Order> CancelAllSpotOrders()
         {
             string jsonResponse = httpClient.Delete("spot/order", null);
             
-            return adapter.ListFromJson<Order>(jsonResponse);
+            return JsonSerializer.Deserialize<IList<Order>>(jsonResponse);
         }
         public virtual Order CancelSpotOrder(string clientOrderId)
         {
             string jsonResponse = httpClient.Delete(string.Format("spot/order/{0}", clientOrderId), null);
 
-            return adapter.ObjectFromJson<Order>(jsonResponse);
+            return JsonSerializer.Deserialize<Order>(jsonResponse);
         }
         public virtual IList<Commission> GetAllTradingCommissions()
         {
             string jsonResponse = httpClient.Get("spot/fee", null);
             
-            return adapter.ListFromJson<Commission>(jsonResponse);
+            return JsonSerializer.Deserialize<IList<Commission>>(jsonResponse);
         }
         public virtual IList<Commission> GetTradingCommissions()
         {
@@ -426,7 +430,7 @@ namespace Cryptomarket.SDK.Rest
         public virtual Commission GetTradingCommission(string symbol)
         {
             string jsonResponse = httpClient.Get(string.Format("spot/fee/{0}", symbol), null);
-            Commission commission = adapter.ObjectFromJson<Commission>(jsonResponse);
+            Commission commission = JsonSerializer.Deserialize<Commission>(jsonResponse);
             commission.Symbol = symbol;
 
             return commission;
@@ -457,7 +461,7 @@ namespace Cryptomarket.SDK.Rest
         {
             string jsonResponse = httpClient.Get("spot/history/order", paramsBuilder.Build());
             
-            return adapter.ListFromJson<Order>(jsonResponse);
+            return JsonSerializer.Deserialize<IList<Order>>(jsonResponse);
         }
         public virtual IList<Trade> GetSpotTradesHistory(string orderId, string symbol, Sort sort, SortBy by, string from, string till, int limit, int offset)
         {
@@ -475,7 +479,7 @@ namespace Cryptomarket.SDK.Rest
         {
             string jsonResponse = httpClient.Get("spot/history/trade", paramsBuilder.Build());
             
-            return adapter.ListFromJson<Trade>(jsonResponse);
+            return JsonSerializer.Deserialize<IList<Trade>>(jsonResponse);
         }
 
         // WALLET MANAGEMENT
@@ -483,13 +487,13 @@ namespace Cryptomarket.SDK.Rest
         {
             string jsonResponse = httpClient.Get("wallet/balance", null);
             
-            return adapter.ListFromJson<Balance>(jsonResponse);
+            return JsonSerializer.Deserialize<IList<Balance>>(jsonResponse);
         }
         public virtual Balance GetWalletBalanceByCurrency(string currency)
         {
             string jsonResponse = httpClient.Get(string.Format("wallet/balance/{0}", currency), null);
 
-            return adapter.ObjectFromJson<Balance>(jsonResponse);
+            return JsonSerializer.Deserialize<Balance>(jsonResponse);
         }
         public virtual Balance GetWalletBalanceOfCurrency(string currency)
         {
@@ -503,7 +507,7 @@ namespace Cryptomarket.SDK.Rest
         {
             string jsonResponse = httpClient.Get("wallet/crypto/address/white-list", null);
             
-            return adapter.ListFromJson<WhitelistedAddress>(jsonResponse);
+            return JsonSerializer.Deserialize<IList<WhitelistedAddress>>(jsonResponse);
         }
         public virtual IList<Address> GetDepositCryptoAddresses(string currency, string networkCode)
         {
@@ -513,7 +517,7 @@ namespace Cryptomarket.SDK.Rest
                 .Build();
             string jsonResponse = httpClient.Get("wallet/crypto/address", @params);
             
-            return adapter.ListFromJson<Address>(jsonResponse);
+            return JsonSerializer.Deserialize<IList<Address>>(jsonResponse);
         }
         public virtual Address CreateDepositCryptoAddress(string currency, string networkCode)
         {
@@ -523,7 +527,7 @@ namespace Cryptomarket.SDK.Rest
                 .Build();
             string jsonResponse = httpClient.Post("wallet/crypto/address", @params);
 
-            return adapter.ObjectFromJson<Address>(jsonResponse);
+            return JsonSerializer.Deserialize<Address>(jsonResponse);
         }
         public virtual Address CreateDepositCryptoAddressOfCurrency(string currency, string networkCode)
         {
@@ -541,7 +545,7 @@ namespace Cryptomarket.SDK.Rest
                 .Build();
             string jsonResponse = httpClient.Get("wallet/crypto/address/recent-deposit", @params);
             
-            return adapter.ListFromJson<Address>(jsonResponse);
+            return JsonSerializer.Deserialize<IList<Address>>(jsonResponse);
         }
         public virtual IList<Address> GetLast10WithdrawalCryptoAddresses(string currency, string networkCode)
         {
@@ -551,7 +555,7 @@ namespace Cryptomarket.SDK.Rest
                 .Build();
             string jsonResponse = httpClient.Get("wallet/crypto/address/recent-withdraw", @params);
             
-            return adapter.ListFromJson<Address>(jsonResponse);
+            return JsonSerializer.Deserialize<IList<Address>>(jsonResponse);
         }
         public virtual string WithdrawCrypto(string currency, string amount, string address, string networkCode, string paymentId, bool includeFee, bool autoCommit, UseOffchain useOffchain, string publicComment)
         {
@@ -570,22 +574,22 @@ namespace Cryptomarket.SDK.Rest
         {
             paramsBuilder.CheckRequired([ArgNames.CURRENCY, ArgNames.AMOUNT, ArgNames.ADDRESS]);
             WithdrawRequest request = new (paramsBuilder);
-            string payload = adapter.ObjectToJson<WithdrawRequest>(request);
+            string payload = JsonSerializer.Serialize<WithdrawRequest>(request);
             string jsonResponse = httpClient.Post("wallet/crypto/withdraw", payload);
             
-            return adapter.ObjectFromJsonValue<string>(jsonResponse, "id");
+            return JsonObject.Parse(jsonResponse)["id"].GetValue<string>();
         }
         public virtual bool WithdrawCryptoCommit(string transactionId)
         {
-            string jsonResponse = httpClient.Add(string.Format("wallet/crypto/withdraw/{0}", transactionId), null);
+            string jsonResponse = httpClient.Post(string.Format("wallet/crypto/withdraw/{0}", transactionId), (Dictionary<string, string>?) null);
             
-            return adapter.ObjectFromJsonValue<bool>(jsonResponse, "result");
+            return JsonObject.Parse(jsonResponse)["result"].GetValue<bool>();
         }
         public virtual bool WithdrawCryptoRollback(string transactionId)
         {
             string jsonResponse = httpClient.Delete(string.Format("wallet/crypto/withdraw/{0}", transactionId), null);
             
-            return adapter.ObjectFromJsonValue<bool>(jsonResponse, "result");
+            return JsonObject.Parse(jsonResponse)["result"].GetValue<bool>();
         }
         public virtual string GetEstimateWithdrawalFee(string currency, string amount, string networkCode)
         {
@@ -599,33 +603,33 @@ namespace Cryptomarket.SDK.Rest
             paramsBuilder.CheckRequired([ArgNames.CURRENCY, ArgNames.AMOUNT]);
             string jsonResponse = httpClient.Get("wallet/crypto/fee/estimate", paramsBuilder.Build());
             
-            return adapter.ObjectFromJsonValue<string>(jsonResponse, "fee");
+            return JsonObject.Parse(jsonResponse)["fee"].GetValue<string>();
         }
         public virtual IList<Fee> GetEstimateWithdrawalFees(IList<FeeRequest> feeRequests)
         {
-            var payload = adapter.ListToJson<FeeRequest>(feeRequests);
+            var payload = JsonSerializer.Serialize<IList<FeeRequest>>(feeRequests);
             string jsonResponse = httpClient.Post("wallet/crypto/fees/estimate", payload);
             
-            return adapter.ListFromJson<Fee>(jsonResponse);
+            return JsonSerializer.Deserialize<IList<Fee>>(jsonResponse);
         }
         public virtual IList<Fee> GetBulkEstimateWithdrawalFees(IList<FeeRequest> feeRequests)
         {
-            var payload = adapter.ListToJson<FeeRequest>(feeRequests);
+            var payload = JsonSerializer.Serialize<IList<FeeRequest>>(feeRequests);
             string jsonResponse = httpClient.Post("wallet/crypto/fee/estimate/bulk", payload);
             
-            return adapter.ListFromJson<Fee>(jsonResponse);
+            return JsonSerializer.Deserialize<IList<Fee>>(jsonResponse);
         }
         public virtual string GetWithdrawalFeesHash()
         {
             string jsonResponse = httpClient.Get("wallet/crypto/fee/withdraw/hash", null);
             
-            return adapter.ObjectFromJsonValue<string>(jsonResponse, "hash");
+            return JsonObject.Parse(jsonResponse)["hash"].GetValue<string>();
         }
 
         // @Override
         // public String getEstimateDepositFee(String currency, String amount, String
         // networkCode)
-        // throws CryptomarketSDKException {
+        // throws CryptoMarketSDKException {
         // return getEstimateDepositFee(new ParamsBuilder()
         // .currency(currency)
         // .networkCode(networkCode)
@@ -633,7 +637,7 @@ namespace Cryptomarket.SDK.Rest
         // }
         // @Override
         // public String getEstimateDepositFee(ParamsBuilder paramsBuilder) throws
-        // CryptomarketSDKException {
+        // CryptoMarketSDKException {
         // paramsBuilder.checkRequired(Arrays.asList(
         // ArgNames.CURRENCY,
         // ArgNames.AMOUNT));
@@ -644,7 +648,7 @@ namespace Cryptomarket.SDK.Rest
         // }
         // @Override
         // public List<Fee> getBulkEstimateDepositFees(List<FeeRequest> feeRequests)
-        // throws CryptomarketSDKException {
+        // throws CryptoMarketSDKException {
         // var payload = adapter.listToJson(feeRequests, FeeRequest.class);
         // String jsonResponse = httpClient.post(
         // "wallet/crypto/fee/deposit/estimate/bulk",
@@ -663,7 +667,7 @@ namespace Cryptomarket.SDK.Rest
             paramsBuilder.CheckRequired([ArgNames.FROM_CURRENCY, ArgNames.TO_CURRENCY, ArgNames.AMOUNT]);
             string jsonResponse = httpClient.Post("wallet/convert", paramsBuilder.Build());
 
-            return adapter.ListFromJsonValue<string>(jsonResponse, "result");
+            return JsonObject.Parse(jsonResponse)["result"].GetValue<IList<string>>();
         }
         public virtual bool CheckCryptoAddressBelongsToCurrentAccount(string address)
         {
@@ -672,7 +676,7 @@ namespace Cryptomarket.SDK.Rest
                 .Build();
             string jsonResponse = httpClient.Get("wallet/crypto/address/check-mine", @params);
 
-            return adapter.ObjectFromJsonValue<bool>(jsonResponse, "result");
+            return JsonObject.Parse(jsonResponse)["result"].GetValue<bool>();
         }
         public virtual string TransferBetweenWalletAndExchange(string currency, string amount, AccountType source, AccountType destination)
         {
@@ -686,9 +690,9 @@ namespace Cryptomarket.SDK.Rest
         {
             paramsBuilder.CheckRequired([ArgNames.CURRENCY, ArgNames.AMOUNT, ArgNames.SOURCE, ArgNames.DESTINATION]);
             string jsonResponse = httpClient.Post("wallet/transfer", paramsBuilder.Build());
-            IList<string> response = adapter.ListFromJson<string>(jsonResponse);
+            IList<string> response = JsonSerializer.Deserialize<IList<string>>(jsonResponse);
             if (response.Count != 1)
-                throw new CryptomarketSDKException("Invalid response format: " + response.ToString());
+                throw new CryptoMarketSDKException("Invalid response format: " + response.ToString());
 
             return response[0];
         }
@@ -706,7 +710,7 @@ namespace Cryptomarket.SDK.Rest
             paramsBuilder.CheckRequired([ArgNames.CURRENCY, ArgNames.AMOUNT, ArgNames.BY, ArgNames.IDENTIFIER]);
             string jsonResponse = httpClient.Post("wallet/internal/withdraw", paramsBuilder.Build());
             
-            return adapter.ObjectFromJsonValue<string>(jsonResponse, "result");
+            return JsonObject.Parse(jsonResponse)["result"].GetValue<string>();
         }
         public virtual IList<Transaction> GetTransactionHistory(IList<string> transactionIds, IList<string> currencies, IList<string> networks, IList<TransactionType> types, IList<TransactionSubtype> subtypes, IList<TransactionStatus> statuses, Sort sort, OrderBy orderBy, string from, string till, int idFrom, int idTill, int limit, int offset, bool asGroupTransactions)
         {
@@ -731,13 +735,13 @@ namespace Cryptomarket.SDK.Rest
         {
             string jsonResponse = httpClient.Get("wallet/transactions", paramsBuilder.Build());
             
-            return adapter.ListFromJson<Transaction>(jsonResponse);
+            return JsonSerializer.Deserialize<IList<Transaction>>(jsonResponse);
         }
         public virtual Transaction GetTransaction(string transactionId)
         {
             string jsonResponse = httpClient.Get(string.Format("wallet/transactions/{0}", transactionId), null);
             
-            return adapter.ObjectFromJson<Transaction>(jsonResponse);
+            return JsonSerializer.Deserialize<Transaction>(jsonResponse);
         }
         public virtual bool CheckIfOffchainIsAvailable(string currency, string address, string paymentId)
         {
@@ -751,7 +755,7 @@ namespace Cryptomarket.SDK.Rest
             paramsBuilder.CheckRequired([ArgNames.CURRENCY, ArgNames.ADDRESS]);
             string jsonResponse = httpClient.Post("wallet/crypto/check-offchain-available", paramsBuilder.Build());
             
-            return adapter.ObjectFromJsonValue<bool>(jsonResponse, "result");
+            return JsonObject.Parse(jsonResponse)["result"].GetValue<bool>();
         }
         public virtual IList<AmountLock> GetAmountLocks(string currency, bool active, int limit, int offset)
         {
@@ -765,13 +769,13 @@ namespace Cryptomarket.SDK.Rest
         {
             string jsonResponse = httpClient.Get("wallet/airdrops", paramsBuilder.Build());
 
-            return adapter.ListFromJson<AmountLock>(jsonResponse);
+            return JsonSerializer.Deserialize<IList<AmountLock>>(jsonResponse);
         }       
         public virtual IList<SubAccount> GetSubAccountList()
         {
             string jsonResponse = httpClient.Get("sub-account", null);
 
-            return adapter.ListFromJson<SubAccount>(jsonResponse);
+            return JsonSerializer.Deserialize<IList<SubAccount>>(jsonResponse);
         }
         public virtual SubAccount GetSubAccount(string subAccountId)
         {
@@ -779,13 +783,13 @@ namespace Cryptomarket.SDK.Rest
                 .SubAccountId(subAccountId)
                 .Build();
             string jsonResponse = httpClient.Get("sub-account", @params);
-            IList<SubAccount> subAccounts = adapter.ListFromJson<SubAccount>(jsonResponse);
+            IList<SubAccount> subAccounts = JsonSerializer.Deserialize<IList<SubAccount>>(jsonResponse);
 
             if (subAccounts.Count < 1)
-                throw new CryptomarketSDKException("SubAccount not found");
+                throw new CryptoMarketSDKException("SubAccount not found");
 
             if (subAccounts.Count > 1)
-                throw new CryptomarketSDKException("Too many sub-accounts");
+                throw new CryptoMarketSDKException("Too many sub-accounts");
 
             return subAccounts[0];
         }
@@ -795,7 +799,7 @@ namespace Cryptomarket.SDK.Rest
                 .SubAccountIds(subAccountIds);
             string jsonResponse = httpClient.Get("sub-account/freeze", @params.Build());
             
-            return adapter.ObjectFromJsonValue<bool>(jsonResponse, "result");
+            return JsonObject.Parse(jsonResponse)["result"].GetValue<bool>();
         }
         public virtual bool ActivateSubAccount(IList<string> subAccountIds)
         {
@@ -803,7 +807,7 @@ namespace Cryptomarket.SDK.Rest
                 .SubAccountIds(subAccountIds);
             string jsonResponse = httpClient.Get("sub-account/activate", @params.Build());
             
-            return adapter.ObjectFromJsonValue<bool>(jsonResponse, "result");
+            return JsonObject.Parse(jsonResponse)["result"].GetValue<bool>();
         }
         public virtual string TransferFunds(string subAccountId, string amount, string currency, SubAccountTransferType transferType)
         {
@@ -814,7 +818,7 @@ namespace Cryptomarket.SDK.Rest
                 .TransferType(transferType);
             string jsonResponse = httpClient.Get("sub-account/transfer", @params.Build());
             
-            return adapter.ObjectFromJsonValue<string>(jsonResponse, "result");
+            return JsonObject.Parse(jsonResponse)["result"].GetValue<string>();
         }
         public virtual string TransferToSuperAccount(string amount, string currency)
         {
@@ -823,7 +827,7 @@ namespace Cryptomarket.SDK.Rest
                 .Currency(currency);
             string jsonResponse = httpClient.Get("sub-account/transfer/sub-to-super", @params.Build());
             
-            return adapter.ObjectFromJsonValue<string>(jsonResponse, "result");
+            return JsonObject.Parse(jsonResponse)["result"].GetValue<string>();
         }
         public virtual string TransferToAnotherSubAccount(string subAccountId, string amount, string currency)
         {
@@ -833,7 +837,7 @@ namespace Cryptomarket.SDK.Rest
                 .Currency(currency);
             string jsonResponse = httpClient.Get("sub-account/transfer/sub-to-sub", @params.Build());
             
-            return adapter.ObjectFromJsonValue<string>(jsonResponse, "result");
+            return JsonObject.Parse(jsonResponse)["result"].GetValue<string>();
         }
         public virtual IList<SubAccountSettings> GetACLSettings(IList<string> subAccountIds)
         {
@@ -841,7 +845,7 @@ namespace Cryptomarket.SDK.Rest
                 .SubAccountIds(subAccountIds);
             string jsonResponse = httpClient.Get("sub-account/acl", @params.Build());
             
-            return adapter.ListFromJson<SubAccountSettings>(jsonResponse);
+            return JsonSerializer.Deserialize<IList<SubAccountSettings>>(jsonResponse);
         }
         public virtual IList<SubAccountSettings> ChangeACLSettings(IList<string> subAccountIds, SubAccountSettings settings)
         {
@@ -855,12 +859,12 @@ namespace Cryptomarket.SDK.Rest
 
             string jsonResponse = httpClient.Get("sub-account/acl", @params.Build());
             
-            return adapter.ListFromJson<SubAccountSettings>(jsonResponse);
+            return JsonSerializer.Deserialize<IList<SubAccountSettings>>(jsonResponse);
         }
         public virtual SubAccountBalances GetSubAccountBalance(string subAccountId)
         {
             string jsonResponse = httpClient.Get(string.Format("sub-account/balance/{0}", subAccountId), null);
-            return adapter.ObjectFromJson<SubAccountBalances>(jsonResponse);
+            return JsonSerializer.Deserialize<SubAccountBalances>(jsonResponse);
         }
         public virtual string GetSubAccountCryptoAddress(string subAccountId, string currency, string networkCode)
         {
@@ -868,7 +872,7 @@ namespace Cryptomarket.SDK.Rest
                 .NetworkCode(networkCode);
             string jsonResponse = httpClient.Get(string.Format("sub-account/address/%s/{0}", subAccountId, currency), @params.Build());
              // class  Address { string  address ;  }
-            Address address = adapter.ObjectFromJsonValue<Address>(jsonResponse, "result");
+            Address address = JsonObject.Parse(jsonResponse)["result"].GetValue<Address>();
             return address.Address_;
         }
         public virtual void Dispose()

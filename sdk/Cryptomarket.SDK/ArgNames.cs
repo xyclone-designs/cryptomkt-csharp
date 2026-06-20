@@ -1,5 +1,5 @@
 
-namespace Cryptomarket.SDK
+namespace CryptoMarket.SDK
 {
     public class ArgNames
     {

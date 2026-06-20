@@ -1,13 +1,12 @@
-using Cryptomarket.SDK.Models;
-using Cryptomarket.SDK.Websocket.Interceptors;
+using CryptoMarket.SDK.Models;
+using CryptoMarket.SDK.Websocket.Interceptors;
 
 using System.Text.Json;
 
-namespace Cryptomarket.SDK.Websocket
+namespace CryptoMarket.SDK.Websocket
 {
     public class ClientBase : IWSHandler
     {
-        public Adapter adapter = new ();
         protected InterceptorCache interceptorCache = new ();
         protected OrderbookCache OBCache = new ();
         protected WebSocketConnection websocket;
@@ -15,10 +14,7 @@ namespace Cryptomarket.SDK.Websocket
 
         protected ClientBase(string url)
         {
-            Moshi moshi = new Builder().Build();
-
             subscriptionKeys = [];
-            payloadAdapter = moshi.Adapter(typeof(Payload));
             websocket = new WebSocketConnection(this, url);
         }
 
@@ -28,9 +24,9 @@ namespace Cryptomarket.SDK.Websocket
 
         protected virtual Dictionary<string, string> SubscritpionKeys { get; set; }
 
-        public virtual void Connect()
+        public virtual async void Connect()
         {
-            websocket.Run();
+            await websocket.RunAsync();
         }
         public virtual void Dispose()
         {
@@ -39,7 +35,7 @@ namespace Cryptomarket.SDK.Websocket
         }
         public virtual void Handle(string json)
         {
-            WSJsonResponse response = adapter.ObjectFromJson<WSJsonResponse>(json);
+            WSJsonResponse response = JsonSerializer.Deserialize<WSJsonResponse>(json);
 
             if (response.Id != null)
                 HandleResponse(response);

@@ -1,6 +1,6 @@
-using Cryptomarket.SDK.Params;
+using CryptoMarket.SDK.Params;
 
-namespace Cryptomarket.SDK.Models
+namespace CryptoMarket.SDK.Models
 {
     /// <summary>
     /// An order report or a trade report

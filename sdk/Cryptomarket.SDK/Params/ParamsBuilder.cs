@@ -1,8 +1,8 @@
-using Cryptomarket.SDK.Exceptions;
+using CryptoMarket.SDK.Exceptions;
 
 using System.Text;
 
-namespace Cryptomarket.SDK.Params
+namespace CryptoMarket.SDK.Params
 {
     /// <summary>
     /// Builds and aggregates the params of a requests
@@ -108,7 +108,7 @@ namespace Cryptomarket.SDK.Params
 
             if (missing.Count > 0)
             {
-                throw new CryptomarketArgumentException(string.Format("Missing required parameters: [{0}]", string.Join(", ", missing)));
+                throw new CryptoMarketArgumentException(string.Format("Missing required parameters: [{0}]", string.Join(", ", missing)));
             }
 
             return this;

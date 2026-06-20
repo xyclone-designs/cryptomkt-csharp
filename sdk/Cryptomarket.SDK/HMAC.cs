@@ -1,43 +1,27 @@
 using Org.BouncyCastle.Utilities.Encoders;
 
+using System.Security.Cryptography;
 using System.Text;
 
-namespace Cryptomarket.SDK
+namespace CryptoMarket.SDK
 {
     /// <summary>
     /// Generates the credential for authenticated communication with the server
     /// </summary>
-    public class HMAC
+    public class HMAC(string apiKey, string apiSecret, int window)
     {
-        private static string HMAC_SHA256 = "HmacSHA256";
-        private static Charset charset = Charset.ForName("US-ASCII");
-        // private static Charset charset = Charset.forName("UTF-8");
-        private string apiSecret;
-        private string apiKey;
-        private int window;
-
-        public HMAC(string apiKey, string apiSecret, int window)
-        {
-            this.apiKey = apiKey;
-            this.apiSecret = apiSecret;
-            this.window = window;
-        }
-
-        public virtual int GetWindow()
-        {
-            return window;
-        }
-
-        public virtual string GetApiSecret()
-        {
-            return apiSecret;
-        }
+        private string ApiSecret = apiSecret;
+        private string ApiKey = apiKey;
+        private int Window = window;
 
         public virtual string GetApiKey()
         {
-            return apiKey;
+            return ApiKey;
         }
-
+        public virtual string GetApiSecret()
+        {
+            return ApiSecret;
+        }
         public virtual string? GetCredential(string method, string body, string url)
         {
             string timestamp = string.Format("{0:D9}", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
@@ -47,22 +31,22 @@ namespace Cryptomarket.SDK
                 .Append((method.Equals("GET") && body != null) ? "?" : "")
                 .Append(body ?? "")
                 .Append(timestamp)
-                .Append(window != 0 ? window : "")
+                .Append(Window != 0 ? Window : "")
             .ToString();
 
             try
             {
-                string? signature = Sign(apiSecret, message);
+                string? signature = Sign(ApiSecret, message);
                 string signed = new StringBuilder()
-                    .Append(apiKey)
+                    .Append(ApiKey)
                     .Append(':')
                     .Append(signature)
                     .Append(':')
                     .Append(timestamp)
-                    .Append(window != 0 ? ":" : "")
-                    .Append(window != 0 ? window : "")
+                    .Append(Window != 0 ? ":" : "")
+                    .Append(Window != 0 ? Window : "")
                 .ToString();
-                byte[] strBytes = signed.GetBytes(charset);
+                byte[] strBytes = Encoding.ASCII.GetBytes(signed);
                 string authStr = Base64.ToBase64String(strBytes).Trim();
                 return "HS256 " + authStr;
             }
@@ -71,20 +55,23 @@ namespace Cryptomarket.SDK
                 return null;
             }
         }
-
+        public virtual int GetWindow()
+        {
+            return Window;
+        }
         public static string? Sign(string key, string message)
         {
-            SecretKeySpec keySpec = new SecretKeySpec(key.GetBytes(charset), HMAC_SHA256);
-            Mac sha256Hmac;
             try
             {
-                sha256Hmac = Mac.GetInstance(HMAC_SHA256);
-                sha256Hmac.Init(keySpec);
-                byte[] macData = sha256Hmac.DoFinal(message.GetBytes(charset));
-                
-                return Hex.ToHexString(macData);
+                byte[] keyBytes = Encoding.ASCII.GetBytes(key);
+                byte[] messageBytes = Encoding.ASCII.GetBytes(message);
+
+                using HMACSHA256 hmac = new(keyBytes);
+                byte[] macData = hmac.ComputeHash(messageBytes);
+
+                return Convert.ToHexString(macData).ToLowerInvariant();
             }
-            catch (Exception)
+            catch
             {
                 return null;
             }

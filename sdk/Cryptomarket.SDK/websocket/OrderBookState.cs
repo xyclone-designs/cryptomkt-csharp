@@ -1,5 +1,5 @@
 
-namespace Cryptomarket.SDK.Websocket
+namespace CryptoMarket.SDK.Websocket
 {
     public enum OrderBookState
     {

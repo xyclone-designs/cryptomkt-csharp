@@ -1,4 +1,4 @@
-namespace Cryptomarket.SDK.Params
+namespace CryptoMarket.SDK.Params
 {
     public enum TimeInForce
     {

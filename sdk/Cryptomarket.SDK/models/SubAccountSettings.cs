@@ -1,5 +1,5 @@
 
-namespace Cryptomarket.SDK.Models
+namespace CryptoMarket.SDK.Models
 {
     /// <summary>
     /// Subaccount settings
@@ -7,8 +7,8 @@ namespace Cryptomarket.SDK.Models
     public class SubAccountSettings
     {
         public string? SubAccountId { get; set; }
-        public bool? DepositAddressGenerationEnabled { get; set; }
-        public bool? WithdrawEnabled { get; set; }
+        public bool DepositAddressGenerationEnabled { get; set; }
+        public bool WithdrawEnabled { get; set; }
         public string? Description { get; set; }
         public string? CreatedAt { get; set; }
         public string? UpdatedAt { get; set; }

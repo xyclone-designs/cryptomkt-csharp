@@ -1,7 +1,7 @@
 
-using Cryptomarket.SDK.Params;
+using CryptoMarket.SDK.Params;
 
-namespace Cryptomarket.SDK.Requests
+namespace CryptoMarket.SDK.Requests
 {
     public class OrderListRequest(ContingencyType contingencyType, string orderListId, IList<OrderBuilder> orders)
     {

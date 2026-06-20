@@ -1,8 +1,8 @@
 
-namespace Cryptomarket.SDK.Exceptions
+namespace CryptoMarket.SDK.Exceptions
 {
     /// <summary>
     /// An Exception for argument errors while constructing params for requests
     /// </summary>
-    public class CryptomarketArgumentException(string errorMessage) : CryptomarketSDKException(errorMessage) { }
+    public class CryptoMarketArgumentException(string errorMessage) : CryptoMarketSDKException(errorMessage) { }
 }

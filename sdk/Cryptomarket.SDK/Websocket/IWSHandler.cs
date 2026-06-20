@@ -1,7 +1,7 @@
 
-namespace Cryptomarket.SDK.Websocket
+namespace CryptoMarket.SDK.Websocket
 {
-    public interface IWSHandler : ICryptomarketWS
+    public interface IWSHandler : ICryptoMarketWS
     {
         void Handle(string json);
     }

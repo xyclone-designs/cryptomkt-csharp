@@ -1,81 +1,48 @@
-using Java.Io;
-using Java.Util;
-using Java.Util.Function;
-using Cryptomarket.SDK;
-using Cryptomarket.SDK.Exceptions;
-using Cryptomarket.SDK.Websocket.Interceptors;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
-using static Cryptomarket.SDK.Websocket.AccountType;
-using static Cryptomarket.SDK.Websocket.ContingencyType;
-using static Cryptomarket.SDK.Websocket.Depth;
-using static Cryptomarket.SDK.Websocket.IdentifyBy;
-using static Cryptomarket.SDK.Websocket.NotificationType;
-using static Cryptomarket.SDK.Websocket.OBSpeed;
-using static Cryptomarket.SDK.Websocket.OrderBy;
-using static Cryptomarket.SDK.Websocket.OrderStatus;
-using static Cryptomarket.SDK.Websocket.OrderType;
-using static Cryptomarket.SDK.Websocket.Period;
-using static Cryptomarket.SDK.Websocket.PriceSpeed;
-using static Cryptomarket.SDK.Websocket.ReportType;
-using static Cryptomarket.SDK.Websocket.Side;
-using static Cryptomarket.SDK.Websocket.Sort;
-using static Cryptomarket.SDK.Websocket.SortBy;
-using static Cryptomarket.SDK.Websocket.SubAccountStatus;
-using static Cryptomarket.SDK.Websocket.SubAccountTransferType;
-using static Cryptomarket.SDK.Websocket.SubscriptionMode;
-using static Cryptomarket.SDK.Websocket.TickerSpeed;
-using static Cryptomarket.SDK.Websocket.TimeInForce;
-using static Cryptomarket.SDK.Websocket.TransactionStatus;
-using static Cryptomarket.SDK.Websocket.TransactionSubtype;
-using static Cryptomarket.SDK.Websocket.TransactionType;
-using static Cryptomarket.SDK.Websocket.UseOffchain;
-using static Cryptomarket.SDK.Websocket.HttpMethod;
+using CryptoMarket.SDK.Exceptions;
+using CryptoMarket.SDK.Websocket.Interceptors;
 
-namespace Cryptomarket.SDK.Websocket
+namespace CryptoMarket.SDK.Websocket
 {
     public class AuthClient : ClientBase
     {
         private string apiSecret;
         private string apiKey;
         private int window;
-        private Action afterAuth = () => { };
-        private Action authOnConnect = () =>
+        private Action AfterAuth 
         {
-            Authenticate((success, exception) =>
+            set => OnConnect = value;
+            get => OnConnect ??= () => { };
+        }
+        private Action AuthOnConnect 
+        {
+            get => field ??= () =>
             {
-                if (exception != null)
+                Authenticate((success, exception) =>
                 {
-                    GetOnFailure().Accept(exception);
-                    return;
-                }
+                    if (exception is not null)
+                    {
+                        OnFailure.Invoke(exception);
+                        
+                        return;
+                    }
 
-                if (!success)
-                {
-                    GetOnFailure().Accept(new CryptomarketSDKException("authorization failed: unsuccessful authorization request"));
-                }
-
-                afterAuth.Invoke();
-            });
-        };
+                    if (success is false)
+                    {
+                        OnFailure.Invoke(new CryptoMarketSDKException("authorization failed: unsuccessful authorization request"));
+                    }
+                });
+            };
+        }
         public AuthClient(string url, string apiKey, string apiSecret, int window) : base(url)
         {
             this.apiKey = apiKey;
             this.apiSecret = apiSecret;
             this.window = window;
-            base.OnConnect(authOnConnect);
+            OnConnect = AuthOnConnect;
         }
-
-        public override void OnConnect(Action onConnect)
-        {
-            afterAuth = onConnect;
-        }
-
         public AuthClient(string url, string apiKey, string apiSecret) : this(url, apiKey, apiSecret, 0) { }
-        public virtual void Authenticate(Action<bool, CryptomarketSDKException> resultBiConsumer)
+
+        public virtual void Authenticate(Action<bool, CryptoMarketSDKException> resultAction)
         {
             Dictionary<string, object> @params = [];
             long timestamp = DateTimeOffset.Now.ToUnixTimeMilliseconds();
@@ -91,7 +58,7 @@ namespace Cryptomarket.SDK.Websocket
             }
 
             @params.Add("signature", HMAC.Sign(apiSecret, toSign));
-            Interceptor interceptor = (resultBiConsumer == null) ? null : InterceptorFactory.NewOfWSResponseObject<bool>(resultBiConsumer);
+            Interceptor interceptor = (resultAction == null) ? null : InterceptorFactory.NewOfWSResponseObject<bool>(resultAction);
             SendById("login", @params, interceptor);
         }
     }

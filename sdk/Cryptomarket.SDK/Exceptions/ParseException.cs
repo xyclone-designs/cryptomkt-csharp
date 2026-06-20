@@ -1,10 +1,10 @@
 
-namespace Cryptomarket.SDK.Exceptions
+namespace CryptoMarket.SDK.Exceptions
 {
     /// <summary>
     /// An exception thrown when conversion to java classes fails
     /// </summary>
-    public class ParseException : CryptomarketSDKException
+    public class ParseException : CryptoMarketSDKException
     {
         public ParseException(string errorMessage) : base(errorMessage) { }
         public ParseException(string errorMessage, Exception err) : base(errorMessage, err) { }

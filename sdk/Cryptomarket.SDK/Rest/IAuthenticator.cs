@@ -1,5 +1,5 @@
 
-namespace Cryptomarket.SDK.Rest
+namespace CryptoMarket.SDK.Rest
 {
     public interface IAuthenticator
     {

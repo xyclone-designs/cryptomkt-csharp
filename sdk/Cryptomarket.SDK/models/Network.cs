@@ -1,6 +1,6 @@
 
 
-namespace Cryptomarket.SDK.Models
+namespace CryptoMarket.SDK.Models
 {
     public class Network
     {

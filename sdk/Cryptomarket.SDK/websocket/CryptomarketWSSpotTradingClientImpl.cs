@@ -1,14 +1,14 @@
-using Cryptomarket.SDK.Exceptions;
-using Cryptomarket.SDK.Models;
-using Cryptomarket.SDK.Websocket.Interceptors;
-using Cryptomarket.SDK.Params;
+using CryptoMarket.SDK.Exceptions;
+using CryptoMarket.SDK.Models;
+using CryptoMarket.SDK.Websocket.Interceptors;
+using CryptoMarket.SDK.Params;
 
-namespace Cryptomarket.SDK.Websocket
+namespace CryptoMarket.SDK.Websocket
 {
-    public class CryptomarketWSSpotTradingClientImpl : AuthClient, ICryptomarketWSSpotTradingClient
+    public class CryptoMarketWSSpotTradingClientImpl : AuthClient, ICryptoMarketWSSpotTradingClient
     {
-        public CryptomarketWSSpotTradingClientImpl(string apiKey, string apiSecret) : this(apiKey, apiSecret, 0) { }
-        public CryptomarketWSSpotTradingClientImpl(string apiKey, string apiSecret, int window) : base("wss://api.exchange.cryptomkt.com/api/3/ws/trading", apiKey, apiSecret, window)
+        public CryptoMarketWSSpotTradingClientImpl(string apiKey, string apiSecret) : this(apiKey, apiSecret, 0) { }
+        public CryptoMarketWSSpotTradingClientImpl(string apiKey, string apiSecret, int window) : base("wss://api.exchange.cryptomkt.com/api/3/ws/trading", apiKey, apiSecret, window)
         {
             SubscritpionKeys.Add("spot_subscribe", "reports");
             SubscritpionKeys.Add("spot_unsubscribe", "reports");
@@ -19,14 +19,14 @@ namespace Cryptomarket.SDK.Websocket
             SubscritpionKeys.Add("spot_balance", "balances");
         }
         
-        public void SubscribeToReports(Action<IList<Report>, NotificationType> notificationAction, Action<bool, CryptomarketSDKException> resultAction)
+        public void SubscribeToReports(Action<IList<Report>, NotificationType> notificationAction, Action<bool, CryptoMarketSDKException> resultAction)
         {
             Interceptor feedInterceptor = new AnonymousInterceptor(notificationAction);
             Interceptor resultInterceptor = InterceptorFactory.NewOfWSResponseObject(resultAction);
 
             SendSubscription("spot_subscribe", null, feedInterceptor, resultInterceptor);
         }
-        public void SubscribeToSpotBalances(SubscriptionMode mode, Action<IList<Balance>, NotificationType> notificationAction, Action<bool, CryptomarketSDKException> resultAction)
+        public void SubscribeToSpotBalances(SubscriptionMode mode, Action<IList<Balance>, NotificationType> notificationAction, Action<bool, CryptoMarketSDKException> resultAction)
         {
             Interceptor interceptor = new AnonymousInterceptor1(notificationAction);
             Interceptor resultInterceptor = InterceptorFactory.NewOfWSResponseObject(resultAction);
@@ -34,13 +34,13 @@ namespace Cryptomarket.SDK.Websocket
             
             SendSubscription("spot_balance_subscribe", @params.BuildObjectMap(), interceptor, resultInterceptor);
         }
-        public void UnsubscribeToReports(Action<bool, CryptomarketSDKException> resultAction)
+        public void UnsubscribeToReports(Action<bool, CryptoMarketSDKException> resultAction)
         {
             Interceptor interceptor = InterceptorFactory.NewOfWSResponseObject(resultAction);
             
             SendUnsubscription("spot_unsubscribe", null, interceptor);
         }
-        public void UnsubscribeToSpotBalances(Action<bool, CryptomarketSDKException> resultAction)
+        public void UnsubscribeToSpotBalances(Action<bool, CryptoMarketSDKException> resultAction)
         {
             Interceptor interceptor = InterceptorFactory.NewOfWSResponseObject(resultAction);
 
@@ -51,90 +51,90 @@ namespace Cryptomarket.SDK.Websocket
             SendUnsubscription("spot_balance_unsubscribe", @params.BuildObjectMap(), interceptor);
         }
 
-        public void GetAllActiveOrders(Action<IList<Report>, CryptomarketSDKException> resultAction)
+        public void GetAllActiveOrders(Action<IList<Report>, CryptoMarketSDKException> resultAction)
         {
             Interceptor interceptor = InterceptorFactory.NewOfWSResponseList<Report>(resultAction);
             
             SendById("spot_get_orders", null, interceptor);
         }
-        public void CreateSpotOrder(string symbol, Side side, string quantity, string clientOrderId, OrderType orderType, string price, string stopPrice, TimeInForce timeInForce, string expireTime, bool strictValidate, bool postOnly, string takeRate, string makeRate, Action<Report, CryptomarketSDKException> resultAction)
+        public void CreateSpotOrder(string symbol, Side side, string quantity, string clientOrderId, OrderType orderType, string price, string stopPrice, TimeInForce timeInForce, string expireTime, bool strictValidate, bool postOnly, string takeRate, string makeRate, Action<Report, CryptoMarketSDKException> resultAction)
         {
             ParamsBuilder paramsBuilder = new ParamsBuilder().Symbol(symbol).Side(side).Quantity(quantity).ClientOrderId(clientOrderId).OrderType(orderType).Price(price).StopPrice(stopPrice).TimeInForce(timeInForce).ExpireTime(expireTime).StrictValidate(strictValidate).PostOnly(postOnly).TakeRate(takeRate).MakeRate(makeRate);
             
             CreateSpotOrder(paramsBuilder, resultAction);
         }
-        public void CreateSpotOrder(ParamsBuilder paramsBuilder, Action<Report, CryptomarketSDKException> resultAction)
+        public void CreateSpotOrder(ParamsBuilder paramsBuilder, Action<Report, CryptoMarketSDKException> resultAction)
         {
             Interceptor interceptor = InterceptorFactory.NewOfWSResponseObject(resultAction);
             
             SendById("spot_new_order", paramsBuilder.BuildObjectMap(), interceptor);
         }
-        public void CreateSpotOrderList(ContingencyType contingencyType, IList<OrderBuilder> orders, string orderListId, Action<Report, CryptomarketSDKException> resultAction)
+        public void CreateSpotOrderList(ContingencyType contingencyType, IList<OrderBuilder> orders, string orderListId, Action<Report, CryptoMarketSDKException> resultAction)
         {
             ParamsBuilder @params = new ParamsBuilder().OrderListId(orderListId).ContingencyType(contingencyType).OrderList(orders);
             Interceptor interceptor = InterceptorFactory.NewOfWSResponseObject(resultAction);
             
             SendById("spot_new_order_list", @params.BuildObjectMap(), interceptor, orders.Count);
         }
-        public void CancelSpotOrder(string clientOrderId, Action<Report, CryptomarketSDKException> resultAction)
+        public void CancelSpotOrder(string clientOrderId, Action<Report, CryptoMarketSDKException> resultAction)
         {
             ParamsBuilder @params = new ParamsBuilder().ClientOrderId(clientOrderId);
             Interceptor interceptor = InterceptorFactory.NewOfWSResponseObject(resultAction);
             
             SendById("spot_cancel_order", @params.BuildObjectMap(), interceptor);
         }
-        public void ReplaceSpotOrder(string clientOrderId, string newClientOrderId, string quantity, string price, string stopPrice, bool strictValidate, Action<Report, CryptomarketSDKException> resultAction)
+        public void ReplaceSpotOrder(string clientOrderId, string newClientOrderId, string quantity, string price, string stopPrice, bool strictValidate, Action<Report, CryptoMarketSDKException> resultAction)
         {
             ParamsBuilder paramsBuilder = new ParamsBuilder().ClientOrderId(clientOrderId).NewClientOrderId(newClientOrderId).Quantity(quantity).Price(price).StopPrice(stopPrice).StrictValidate(strictValidate);
             Interceptor interceptor = InterceptorFactory.NewOfWSResponseObject(resultAction);
             
             SendById("spot_replace_order", paramsBuilder.BuildObjectMap(), interceptor);
         }
-        public void CancelAllSpotOrders(Action<IList<Report>, CryptomarketSDKException> resultAction)
+        public void CancelAllSpotOrders(Action<IList<Report>, CryptoMarketSDKException> resultAction)
         {
             Interceptor interceptor = InterceptorFactory.NewOfWSResponseList(resultAction);
             
             SendById("spot_cancel_orders", null, interceptor);
         }
-        public void GetSpotTradingBalances(Action<IList<Balance>, CryptomarketSDKException> resultAction)
+        public void GetSpotTradingBalances(Action<IList<Balance>, CryptoMarketSDKException> resultAction)
         {
             Interceptor interceptor = InterceptorFactory.NewOfWSResponseList(resultAction);
             
             SendById("spot_balances", null, interceptor);
         }
-        public void GetSpotTradingBalanceOfCurrency(string currency, Action<Balance, CryptomarketSDKException> resultAction)
+        public void GetSpotTradingBalanceOfCurrency(string currency, Action<Balance, CryptoMarketSDKException> resultAction)
         {
             Interceptor interceptor = InterceptorFactory.NewOfWSResponseObject(resultAction);
             ParamsBuilder paramsBuilder = new ParamsBuilder().Currency(currency);
             
             SendById("spot_balance", paramsBuilder.BuildObjectMap(), interceptor);
         }
-        public void GetSpotTradingBalanceByCurrency(string currency, Action<Balance, CryptomarketSDKException> resultAction)
+        public void GetSpotTradingBalanceByCurrency(string currency, Action<Balance, CryptoMarketSDKException> resultAction)
         {
             GetSpotTradingBalanceOfCurrency(currency, resultAction);
         }
-        public void GetSpotTradingBalance(string currency, Action<Balance, CryptomarketSDKException> resultAction)
+        public void GetSpotTradingBalance(string currency, Action<Balance, CryptoMarketSDKException> resultAction)
         {
             GetSpotTradingBalanceOfCurrency(currency, resultAction);
         }
-        public void GetSpotCommissions(Action<IList<Commission>, CryptomarketSDKException> resultAction)
+        public void GetSpotCommissions(Action<IList<Commission>, CryptoMarketSDKException> resultAction)
         {
             Interceptor interceptor = InterceptorFactory.NewOfWSResponseList(resultAction);
             
             SendById("spot_fees", null, interceptor);
         }
-        public void GetSpotCommissionOfSymbol(string symbol, Action<Commission, CryptomarketSDKException> resultAction)
+        public void GetSpotCommissionOfSymbol(string symbol, Action<Commission, CryptoMarketSDKException> resultAction)
         {
             ParamsBuilder paramsBuilder = new ParamsBuilder().Symbol(symbol);
             Interceptor interceptor = InterceptorFactory.NewOfWSResponseObject(resultAction);
             
             SendById("spot_fee", paramsBuilder.BuildObjectMap(), interceptor);
         }
-        public void GetSpotCommissionBySymbol(string symbol, Action<Commission, CryptomarketSDKException> resultAction)
+        public void GetSpotCommissionBySymbol(string symbol, Action<Commission, CryptoMarketSDKException> resultAction)
         {
             GetSpotCommissionOfSymbol(symbol, resultAction);
         }
-        public void GetSpotCommission(string symbol, Action<Commission, CryptomarketSDKException> resultAction)
+        public void GetSpotCommission(string symbol, Action<Commission, CryptoMarketSDKException> resultAction)
         {
             GetSpotCommissionOfSymbol(symbol, resultAction);
         }
@@ -149,7 +149,7 @@ namespace Cryptomarket.SDK.Websocket
                 {
                     try
                     {
-                        if (Adapter.ListFromValue<Report>(response.Parameters) is IList<Report> reports)
+                        if (response.Parameters is IList<Report> reports)
                             NotificationAction.Invoke(reports, NotificationType.SNAPSHOT);
                     }
                     catch (ParseException) { }
@@ -158,7 +158,7 @@ namespace Cryptomarket.SDK.Websocket
                 {
                     try
                     {
-                        Report report = Adapter.ObjectFromValue<Report>(response.Parameters);
+                        Report report = response.Parameters as Report;
 
                         NotificationAction.Invoke([report], NotificationType.UPDATE);
                     }
@@ -174,7 +174,7 @@ namespace Cryptomarket.SDK.Websocket
             {
                 try
                 {
-                    IList<Balance> balances = Adapter.ListFromValue<Balance>(response.Parameters);
+                    IList<Balance> balances = response.Parameters as IList<Balance>;
                     NotificationAction.Invoke(balances, NotificationType.DATA);
                 }
                 catch (ParseException)

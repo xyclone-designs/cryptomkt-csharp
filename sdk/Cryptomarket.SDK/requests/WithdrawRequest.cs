@@ -1,6 +1,6 @@
-using Cryptomarket.SDK.Params;
+using CryptoMarket.SDK.Params;
 
-namespace Cryptomarket.SDK.Requests
+namespace CryptoMarket.SDK.Requests
 {
     public class WithdrawRequest
     {

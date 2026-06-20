@@ -1,62 +1,31 @@
-using Java.Io;
-using Java.Lang.Reflect;
-using Java.Net;
-using Java.Util;
-using Org.Apache.Http;
-using Org.Apache.Http.Client.Entity;
-using Org.Apache.Http.Client.Methods;
-using Org.Apache.Http.Client.Utils;
-using Org.Apache.Http.Entity;
-using Org.Apache.Http.Impl.Client;
-using Org.Apache.Http.Message;
-using Org.Apache.Http.Util;
-using Org.Jetbrains.Annotations;
-using Cryptomarket.SDK;
-using Cryptomarket.SDK.Exceptions;
-using Cryptomarket.SDK.Models;
-using Cryptomarket.SDK.Exceptions;
+using System.Text;
+using System.Text.Json;
 
-namespace Cryptomarket.SDK.Rest
+using CryptoMarket.SDK.Exceptions;
+using CryptoMarket.SDK.Models;
+
+namespace CryptoMarket.SDK.Rest
 {
-    public class HttpClientImpl : CloseableHttpClient
+    public class HttpClientImpl : ICloseableHttpClient
     {
         private static readonly string APPLICATION_JSON = "application/json";
-        private static readonly string USER_AGENT = "cryptomarket/java";
-        private static readonly string APPLICATOIN_X_WWW_FORM_URLENCODED = "application/x-www-form-urlencoded";
+        private static readonly string USER_AGENT = "cryptomarket/csharp";
+        private static readonly string APPLICATION_X_WWW_FORM_URLENCODED = "application/x-www-form-urlencoded";
+
         private readonly string url;
         private readonly string apiVersion;
-        private readonly Moshi moshi = new Builder().Build();
-        private readonly JsonAdapter<ErrorResponse> errorJsonAdapter = moshi.Adapter(typeof(ErrorResponse));
-        private readonly ParameterizedType mapStringString = Types.NewParameterizedType(typeof(Dictionary), typeof(string), typeof(string));
-        private readonly JsonAdapter<Dictionary<string, string>> mapStrStrJsonAdapter = moshi.Adapter(mapStringString);
-        private readonly org.apache.http.impl.client.CloseableHttpClient client;
+        private readonly HttpClient client;
         private HMAC hmac;
-        class HttpDeleteWithBody : HttpEntityEnclosingRequestBase
-        {
-            public static readonly string METHOD_NAME = "DELETE";
-            public virtual string GetMethod()
-            {
-                return METHOD_NAME;
-            }
 
-            public HttpDeleteWithBody(string uri) : base()
-            {
-                SetUri(Uri.Create(uri));
-            }
+        public HttpClientImpl(string url, string apiVersion, string apiKey, string apiSecret)
+            : this(url, apiVersion, apiKey, apiSecret, 0) { }
 
-            public HttpDeleteWithBody(Uri uri) : base()
-            {
-                SetUri(uri);
-            }
+        public HttpClientImpl(HttpClient client, string url, string apiVersion, string apiKey, string apiSecret)
+            : this(client, url, apiVersion, apiKey, apiSecret, 0) { }
 
-            public HttpDeleteWithBody() : base() { }
-        }
-
-        public HttpClientImpl(string url, string apiVersion, string apiKey, string apiSecret) : this(url, apiVersion, apiKey, apiSecret, 0) { }
-        public HttpClientImpl(HttpClient client, string url, string apiVersion, string apiKey, string apiSecret) : this(client, url, apiVersion, apiKey, apiSecret, 0) { }
         public HttpClientImpl(string url, string apiVersion, string apiKey, string apiSecret, int window)
         {
-            this.client = HttpClients.CreateDefault();
+            this.client = new HttpClient();
             this.hmac = new HMAC(apiKey, apiSecret, window);
             this.url = url;
             this.apiVersion = apiVersion;
@@ -87,224 +56,194 @@ namespace Cryptomarket.SDK.Rest
 
         public virtual string PublicGet(string endpoint, Dictionary<string, string> @params)
         {
-            Uri uri = null;
+            Uri uri;
             try
             {
-                UriBuilder uriBuilder = new UriBuilder(url + apiVersion + endpoint);
-                if (@params != null)
-                    @params.ForEach((key, val) => uriBuilder.AddParameter(key, val));
-                uri = uriBuilder.Build();
+                uri = BuildUriWithParams(url + apiVersion + endpoint, @params, sorted: false);
             }
-            catch (UriSyntaxException e)
+            catch (UriFormatException e)
             {
-                throw new CryptomarketSDKException("Failed to build the uri", e);
+                throw new CryptoMarketSDKException("Failed to build the uri", e);
             }
 
-            HttpGet httpGet = new HttpGet(uri);
-            return MakeRequest(httpGet);
+            using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            AddCommonHeaders(request);
+            return MakeRequest(request);
         }
 
         public virtual string Get(string endpoint, Dictionary<string, string> @params)
         {
             Uri uri = BuildUri(endpoint, @params);
-            HttpGet httpGet = new HttpGet(uri);
-            new HttpPost(uri);
-            string credential = hmac.GetCredential(HttpMethod.GET.ToString(), uri.GetQuery(), uri.GetPath());
-            httpGet.SetHeader(HttpHeaders.AUTHORIZATION, credential);
-            return MakeRequest(httpGet);
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            string query = uri.Query.TrimStart('?');
+            string credential = hmac.GetCredential(HttpMethod.Get.Method, query, uri.AbsolutePath);
+            request.Headers.TryAddWithoutValidation("Authorization", credential);
+            AddCommonHeaders(request);
+            return MakeRequest(request);
         }
 
         private Uri BuildUri(string endpoint, Dictionary<string, string> @params)
         {
             try
             {
-                UriBuilder uriBuilder = new UriBuilder(url + apiVersion + endpoint);
-                if (@params != null)
-                    @params.EntrySet().Stream().Sorted(Map.Entry.ComparingByKey()).ForEach((e) => uriBuilder.AddParameter(e.GetKey(), e.GetValue()));
-                return uriBuilder.Build();
+                return BuildUriWithParams(url + apiVersion + endpoint, @params, sorted: true);
             }
-            catch (UriSyntaxException e)
+            catch (UriFormatException e)
             {
-                throw new CryptomarketSDKException("Failed to build the uri", e);
+                throw new CryptoMarketSDKException("Failed to build the uri", e);
             }
+        }
+
+        private Uri BuildUriWithParams(string baseUrl, Dictionary<string, string> @params, bool sorted)
+        {
+            if (@params == null || @params.Count == 0)
+                return new Uri(baseUrl);
+
+            IEnumerable<KeyValuePair<string, string>> entries = sorted
+                ? @params.OrderBy(e => e.Key)
+                : (IEnumerable<KeyValuePair<string, string>>)@params;
+
+            var query = string.Join("&", entries.Select(e =>
+                Uri.EscapeDataString(e.Key) + "=" + Uri.EscapeDataString(e.Value)));
+
+            return new Uri(baseUrl + "?" + query);
         }
 
         public virtual string Post(string endpoint, Dictionary<string, string> payload)
         {
             string strPayload = "";
             if (payload != null)
-                strPayload = mapStrStrJsonAdapter.ToJson(payload);
+                strPayload = System.Text.Json.JsonSerializer.Serialize(payload);
             return Post(endpoint, strPayload);
         }
 
         public virtual string Post(string endpoint, string payload)
         {
-            HttpPost httpPost = new HttpPost(url + apiVersion + endpoint);
-            if (!payload.Equals(""))
+            using var request = new HttpRequestMessage(HttpMethod.Post, url + apiVersion + endpoint);
+            AddCommonHeaders(request);
+
+            if (!string.IsNullOrEmpty(payload))
             {
-                httpPost.SetEntity(new StringEntity(payload, ContentType.APPLICATION_JSON));
-                httpPost.SetHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON);
+                request.Content = new StringContent(payload, Encoding.UTF8, APPLICATION_JSON);
             }
 
-            string credential = hmac.GetCredential(HttpMethod.POST.ToString(), payload, apiVersion + endpoint);
-            httpPost.SetHeader(HttpHeaders.AUTHORIZATION, credential);
-            return MakeRequest(httpPost);
+            string credential = hmac.GetCredential(HttpMethod.Post.Method, payload ?? "", apiVersion + endpoint);
+            request.Headers.TryAddWithoutValidation("Authorization", credential);
+            return MakeRequest(request);
         }
 
         public virtual string Put(string endpoint, Dictionary<string, string> @params)
         {
-            HttpPut httpPut = new HttpPut(url + apiVersion + endpoint);
-            UrlEncodedFormEntity entity = null;
+            using var request = new HttpRequestMessage(HttpMethod.Put, url + apiVersion + endpoint);
+            AddCommonHeaders(request);
+
+            string body = "";
             if (@params != null)
             {
-                entity = ParamsToUrlEncodedEntity(@params);
-                httpPut.SetEntity(entity);
+                body = ToUrlEncodedString(@params);
+                request.Content = new StringContent(body, Encoding.UTF8, APPLICATION_X_WWW_FORM_URLENCODED);
             }
 
-            AddAuthorizationHeader(httpPut, HttpMethod.PUT, endpoint, entity);
-            httpPut.SetHeader(HttpHeaders.ACCEPT, APPLICATION_JSON);
-            httpPut.SetHeader(HttpHeaders.CONTENT_TYPE, APPLICATOIN_X_WWW_FORM_URLENCODED);
-            return MakeRequest(httpPut);
-        }
-
-        private HttpUriRequest AddAuthorizationHeader(HttpUriRequest request, HttpMethod method, string endpoint, HttpEntity entity)
-        {
-            string strEntity = EntityAsStr(entity);
-            string credential = hmac.GetCredential(method.ToString(), strEntity, apiVersion + endpoint);
-            request.SetHeader(HttpHeaders.AUTHORIZATION, credential);
-            return request;
-        }
-
-        private string EntityAsStr(HttpEntity entity)
-        {
-            if (entity == null)
-            {
-                return "";
-            }
-
-            try
-            {
-                return EntityUtils.ToString(entity);
-            }
-            catch (ParseException e)
-            {
-                throw new CryptomarketSDKException("failed hmac authentication", e);
-            }
-            catch (IOException e)
-            {
-                throw new CryptomarketSDKException("failed hmac authentication", e);
-            }
-        }
-
-        private UrlEncodedFormEntity ParamsToUrlEncodedEntity(Dictionary<string, string> @params)
-        {
-            IList<NameValuePair> form = new List();
-            @params.ForEach((key, value) => form.Add(new BasicNameValuePair(key, value)));
-            return new UrlEncodedFormEntity(form, Consts.UTF_8);
+            string credential = hmac.GetCredential(HttpMethod.Put.Method, body, apiVersion + endpoint);
+            request.Headers.TryAddWithoutValidation("Authorization", credential);
+            request.Headers.Accept.ParseAdd(APPLICATION_JSON);
+            return MakeRequest(request);
         }
 
         public virtual string Patch(string endpoint, Dictionary<string, string> @params)
         {
-            HttpPatch httpPatch = new HttpPatch(url + apiVersion + endpoint);
-            UrlEncodedFormEntity entity = null;
+            using var request = new HttpRequestMessage(new HttpMethod("PATCH"), url + apiVersion + endpoint);
+            AddCommonHeaders(request);
+
+            string body = "";
             if (@params != null)
             {
-                entity = ParamsToUrlEncodedEntity(@params);
-                httpPatch.SetEntity(entity);
+                body = ToUrlEncodedString(@params);
+                request.Content = new StringContent(body, Encoding.UTF8, APPLICATION_X_WWW_FORM_URLENCODED);
             }
 
-            try
-            {
-                string body = "";
-                if (entity != null)
-                    body = EntityUtils.ToString(entity);
-                string credential = hmac.GetCredential("PATCH", body, apiVersion + endpoint);
-                httpPatch.SetHeader(HttpHeaders.AUTHORIZATION, credential);
-            }
-            catch (Exception e)
-            {
-                throw new CryptomarketSDKException("failed hmac authentication", e);
-            }
-
-            httpPatch.SetHeader(HttpHeaders.ACCEPT, APPLICATION_JSON);
-            httpPatch.SetHeader(HttpHeaders.CONTENT_TYPE, APPLICATOIN_X_WWW_FORM_URLENCODED);
-            return MakeRequest(httpPatch);
+            string credential = hmac.GetCredential("PATCH", body, apiVersion + endpoint);
+            request.Headers.TryAddWithoutValidation("Authorization", credential);
+            request.Headers.Accept.ParseAdd(APPLICATION_JSON);
+            return MakeRequest(request);
         }
 
         public virtual string Delete(string endpoint, Dictionary<string, string> @params)
         {
-            HttpDeleteWithBody httpDelete = new HttpDeleteWithBody(url + apiVersion + endpoint);
-            UrlEncodedFormEntity entity = null;
+            using var request = new HttpRequestMessage(HttpMethod.Delete, url + apiVersion + endpoint);
+            AddCommonHeaders(request);
+
+            string body = "";
             if (@params != null)
             {
-                entity = ParamsToUrlEncodedEntity(@params);
-                httpDelete.SetEntity(entity);
+                body = ToUrlEncodedString(@params);
+                request.Content = new StringContent(body, Encoding.UTF8, APPLICATION_X_WWW_FORM_URLENCODED);
             }
 
-            try
-            {
-                string body = "";
-                if (entity != null)
-                    body = EntityUtils.ToString(entity);
-                string credential = hmac.GetCredential("DELETE", body, this.apiVersion + endpoint);
-                httpDelete.SetHeader(HttpHeaders.AUTHORIZATION, credential);
-            }
-            catch (Exception e)
-            {
-                throw new CryptomarketSDKException("failed hmac authentication", e);
-            }
-
-            httpDelete.SetHeader(HttpHeaders.ACCEPT, APPLICATION_JSON);
-            httpDelete.SetHeader(HttpHeaders.CONTENT_TYPE, APPLICATOIN_X_WWW_FORM_URLENCODED);
-            return MakeRequest(httpDelete);
+            string credential = hmac.GetCredential("DELETE", body, apiVersion + endpoint);
+            request.Headers.TryAddWithoutValidation("Authorization", credential);
+            request.Headers.Accept.ParseAdd(APPLICATION_JSON);
+            return MakeRequest(request);
         }
 
-        private string MakeRequest(HttpUriRequest request)
+        private string ToUrlEncodedString(Dictionary<string, string> @params)
         {
-            request.SetHeader(HttpHeaders.CONNECTION, "Keep-Alive");
-            request.SetHeader(HttpHeaders.USER_AGENT, USER_AGENT);
-            CloseableHttpResponse response;
+            return string.Join("&", @params.Select(e =>
+                Uri.EscapeDataString(e.Key) + "=" + Uri.EscapeDataString(e.Value)));
+        }
+
+        private void AddCommonHeaders(HttpRequestMessage request)
+        {
+            request.Headers.Connection.ParseAdd("Keep-Alive");
+            request.Headers.UserAgent.ParseAdd(USER_AGENT);
+        }
+
+        private string MakeRequest(HttpRequestMessage request)
+        {
+            HttpResponseMessage response;
             string responseBody;
             bool isSuccessful;
+
             try
             {
-                response = client.Execute(request);
+                response = client.SendAsync(request).GetAwaiter().GetResult();
             }
-            catch (IOException err)
+            catch (Exception err)
             {
-                throw new CryptomarketSDKException("Couldn't make the call", err);
+                throw new CryptoMarketSDKException("Couldn't make the call", err);
             }
 
             try
             {
-                responseBody = EntityUtils.ToString(response.GetEntity());
-                isSuccessful = response.GetStatusLine().GetStatusCode() == 200;
+                responseBody = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                isSuccessful = response.StatusCode == System.Net.HttpStatusCode.OK;
             }
-            catch (IOException err)
+            catch (Exception err)
             {
-                throw new CryptomarketSDKException("Couldn't parse the response body", err);
+                throw new CryptoMarketSDKException("Couldn't parse the response body", err);
             }
-
-            try
+            finally
             {
                 response.Dispose();
-            }
-            catch (IOException e)
-            {
-                throw new CryptomarketSDKException("unable to close api response. " + e.GetMessage(), e);
             }
 
             if (isSuccessful)
                 return responseBody;
+
             try
             {
-                ErrorResponse errorResponse = errorJsonAdapter.FromJson(responseBody);
-                ErrorBody errorBody = errorResponse.GetError();
-                throw new CryptomarketAPIException(errorBody);
+                ErrorResponse errorResponse = JsonSerializer.Deserialize<ErrorResponse>(responseBody);
+                ErrorBody errorBody = errorResponse.Error;
+                throw new CryptoMarketAPIException(errorBody);
             }
-            catch (IOException err)
+            catch (CryptoMarketAPIException)
             {
-                throw new CryptomarketSDKException("Couldn't parse the error: " + responseBody, err);
+                throw;
+            }
+            catch (Exception err)
+            {
+                throw new CryptoMarketSDKException("Couldn't parse the error: " + responseBody, err);
             }
         }
     }
