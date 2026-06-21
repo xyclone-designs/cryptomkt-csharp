@@ -1,131 +1,127 @@
-using Org.Junit.Assert;
-using Java.Util;
-using Org.Junit;
-using Com.CryptoMarket.Params;
-using CryptoMarket.Tests.SDK.Exceptions;
-using CryptoMarket.Tests.SDK.Models;
-using CryptoMarket.Tests.SDK.Rest;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
+using CryptoMarket.SDK.Models;
+using CryptoMarket.SDK.Params;
+using CryptoMarket.SDK.Rest;
 
 namespace CryptoMarket.Tests.SDK
 {
     public class TestRestClientWalletManagement
     {
-        CryptoMarketRestClient client = new CryptoMarketRestClientImpl(KeyLoader.GetApiKey(), KeyLoader.GetApiSecret());
+        ICryptoMarketRestClient client = new CryptoMarketRestClientImpl(KeyLoader.GetApiKey(), KeyLoader.GetApiSecret());
+
         public virtual void TestGetWalletBalances()
         {
             IList<Balance> balances = client.GetWalletBalances();
+            
             if (balances.Count == 0)
-                Fail();
-            balances.ForEach((balance) =>
-            {
-                if (balance.GetCurrency() == null || balance.GetCurrency().Equals(""))
-                    Fail();
-            });
+                Assert.Fail();
+
+            foreach (var balance in balances)
+                if (string.IsNullOrEmpty(balance.Currency))
+                    Assert.Fail();
         }
 
         public virtual void TestGetWalletBalanceOfCurrency()
         {
             Balance balance = client.GetWalletBalanceByCurrency("ADA");
-            Checker.checkBalance.Invoke(balance);
+            Checker.CheckBalance.Invoke(balance);
         }
 
         public virtual void TestGetDepositCriptoAddresses()
         {
             IList<Address> addresses = client.GetDepositCryptoAddresses(null, null);
-            addresses.ForEach(Checker.checkAddress);
+
+            foreach (var address in addresses) Checker.CheckAddress.Invoke(address);
         }
 
         public virtual void TestGetDepositCriptoAddressOfCurrency()
         {
             IList<Address> addresses = client.GetDepositCryptoAddresses("NEXO", null);
-            addresses.ForEach(Checker.checkAddress);
+
+            foreach (var address in addresses) Checker.CheckAddress.Invoke(address);
         }
 
         public virtual void TestCreateDepositCryptoAddress()
         {
             Address addresses = client.CreateDepositCryptoAddress("BTC", null);
-            Checker.checkAddress.Invoke(addresses);
+            Checker.CheckAddress.Invoke(addresses);
         }
 
         public virtual void TestLast10DepositCryptoAddresses()
         {
             IList<Address> addresses = client.GetLast10DepositCryptoAddresses("EOS", null);
-            addresses.ForEach(Checker.checkAddress);
+
+            foreach (var address in addresses) Checker.CheckAddress.Invoke(address);
         }
 
         public virtual void TestLast10WithdrawalCryptoAddresses()
         {
             IList<Address> addresses = client.GetLast10WithdrawalCryptoAddresses("EOS", null);
-            addresses.ForEach(Checker.checkAddress);
+
+            foreach (var address in addresses) Checker.CheckAddress.Invoke(address);
         }
 
         public virtual void TestWithdrawCrypto()
         {
             IList<Address> adaAddresses = client.GetDepositCryptoAddresses("ADA", null);
-            string transaction_id = client.WithdrawCrypto(new ParamsBuilder().Currency("ADA").Amount("0.1").Address(adaAddresses[0].GetAddress()));
+            string transaction_id = client.WithdrawCrypto(new ParamsBuilder().Currency("ADA").Amount("0.1").Address(adaAddresses[0].Address_));
             if (transaction_id.Equals(""))
             {
-                Fail();
+                Assert.Fail();
             }
         }
 
         public virtual void TestWithdrawCryptoCommit()
         {
             IList<Address> adaAddresses = client.GetDepositCryptoAddresses("ADA", null);
-            string transactionId = client.WithdrawCrypto(new ParamsBuilder().Currency("ADA").Amount("0.1").Address(adaAddresses[0].GetAddress()).AutoCommit(false));
+            string transactionId = client.WithdrawCrypto(new ParamsBuilder().Currency("ADA").Amount("0.1").Address(adaAddresses[0].Address_).AutoCommit(false));
             if (transactionId.Equals(""))
             {
-                Fail();
+                Assert.Fail();
             }
 
             bool result = client.WithdrawCryptoCommit(transactionId);
             if (!result)
             {
-                Fail();
+                Assert.Fail();
             }
         }
 
         public virtual void TestWithdrawCryptoRollback()
         {
             IList<Address> adaAddresses = client.GetDepositCryptoAddresses("ADA", null);
-            string transactionId = client.WithdrawCrypto(new ParamsBuilder().Currency("ADA").Amount("0.1").Address(adaAddresses[0].GetAddress()).AutoCommit(false));
+            string transactionId = client.WithdrawCrypto(new ParamsBuilder().Currency("ADA").Amount("0.1").Address(adaAddresses[0].Address_).AutoCommit(false));
             if (transactionId.Equals(""))
             {
-                Fail();
+                Assert.Fail();
             }
 
             bool result = client.WithdrawCryptoRollback(transactionId);
             if (!result)
             {
-                Fail();
+                Assert.Fail();
             }
         }
 
         public virtual void TestGetEstimateWithdrawFees()
         {
-            var fees = client.GetEstimateWithdrawalFees(List.Of(new FeeRequest("EOS", "100", null), new FeeRequest("ETH", "100", null)));
+            var fees = client.GetEstimateWithdrawalFees([new FeeRequest("EOS", "100", null), new FeeRequest("ETH", "100", null)]);
             if (fees.Count != 2)
             {
-                Fail("invalid amount of fees");
+                Assert.Fail("invalid amount of fees");
             }
 
-            fees.ForEach(Checker.checkFee);
+            foreach (var fee in fees) Checker.CheckFee.Invoke(fee);
         }
 
         public virtual void TestGetBulkEstimateWithdrawFees()
         {
-            var fees = client.GetBulkEstimateWithdrawalFees(List.Of(new FeeRequest("EOS", "100", null), new FeeRequest("ETH", "100", null)));
+            var fees = client.GetBulkEstimateWithdrawalFees([new FeeRequest("EOS", "100", null), new FeeRequest("ETH", "100", null)]);
             if (fees.Count != 2)
             {
-                Fail("invalid amount of fees");
+                Assert.Fail("invalid amount of fees");
             }
 
-            fees.ForEach(Checker.checkFee);
+            foreach (var fee in fees) Checker.CheckFee.Invoke(fee);
         }
 
         public virtual void TestGetEstimateWithdrawFee()
@@ -133,7 +129,7 @@ namespace CryptoMarket.Tests.SDK
             string estimate = client.GetEstimateWithdrawalFee("EOS", "100", null);
             if (estimate.Equals(""))
             {
-                Fail();
+                Assert.Fail();
             }
         }
 
@@ -142,79 +138,63 @@ namespace CryptoMarket.Tests.SDK
             string estimate = client.GetWithdrawalFeesHash();
             if (estimate.Equals(""))
             {
-                Fail();
+                Assert.Fail();
             }
         }
 
-        // @Test
-        // public void testGetEstimateDepositFees() throws CryptoMarketSDKException {
-        //   var fees = client
-        //       .getBulkEstimateDepositFees(List.of(new FeeRequest("EOS", "100"), new FeeRequest("ETH", "100")));
-        //   if (fees.size() != 2) {
-        //     fail("invalid amount of fees");
-        //   }
-        //   fees.forEach(Checker.checkFee);
-        // }
-        // @Test
-        // public void testGetEstimateDepositFee() throws CryptoMarketSDKException {
-        //   String estimate = client.getEstimateDepositFee("EOS", "100", null);
-        //   if (estimate.equals("")) {
-        //     fail();
-        //   }
-        // }
         public virtual void TestCryptoAddressBelongsToCurrentAccount()
         {
             IList<Address> addresses = client.GetDepositCryptoAddresses("ADA", null);
-            bool isMine = client.CheckCryptoAddressBelongsToCurrentAccount(addresses[0].GetAddress());
+            bool isMine = client.CheckCryptoAddressBelongsToCurrentAccount(addresses[0].Address_);
             if (!isMine)
             {
-                Fail();
+                Assert.Fail();
             }
         }
 
         public virtual void TestTransferBetweenWalletAndExchage()
         {
-            string transactionId = client.TransferBetweenWalletAndExchange(new ParamsBuilder().Currency("ADA").Amount("0.1").Source(AccountType.WALLET).Destination(AccountType.SPOT));
+            string transactionId = client.TransferBetweenWalletAndExchange(new ParamsBuilder().Currency("ADA").Amount("0.1").Source(AccountType.Wallet).Destination(AccountType.Spot));
             if (transactionId.Equals(""))
             {
-                Fail();
+                Assert.Fail();
             }
 
-            transactionId = client.TransferBetweenWalletAndExchange(new ParamsBuilder().Currency("ADA").Amount("0.1").Source(AccountType.SPOT).Destination(AccountType.WALLET));
+            transactionId = client.TransferBetweenWalletAndExchange(new ParamsBuilder().Currency("ADA").Amount("0.1").Source(AccountType.Spot).Destination(AccountType.Wallet));
             if (transactionId.Equals(""))
             {
-                Fail();
+                Assert.Fail();
             }
         }
 
         public virtual void TestGetTransactionHistory()
         {
             IList<Transaction> transactions = client.GetTransactionHistory(new ParamsBuilder());
-            transactions.ForEach(Checker.checkTransaction);
+            
+            foreach (var transaction in transactions) Checker.CheckTransaction.Invoke(transaction);
         }
 
         public virtual void TestGetTransactionHistoryWithParams()
         {
-            IList<Transaction> transactions = client.GetTransactionHistory(new ParamsBuilder().OrderBy(OrderBy.CREATED_AT).Sort(Sort.DESC).Limit(1000).Offset(0).Currencies(List.Of()).From("1614815872000"));
-            AssertTrue(transactions.Count > 0);
-            transactions.ForEach(Checker.checkTransaction);
+            IList<Transaction> transactions = client.GetTransactionHistory(new ParamsBuilder().OrderBy(OrderBy.CREATED_AT).Sort(Sort.DESC).Limit(1000).Offset(0).Currencies([]).From("1614815872000"));
+            Assert.True(transactions.Count > 0);
+            
+            foreach (var transaction in transactions) Checker.CheckTransaction.Invoke(transaction);
         }
 
         public virtual void TestGetTransaction()
         {
             IList<Transaction> transactions = client.GetTransactionHistory(new ParamsBuilder().Limit(1));
-            Transaction transaction = client.GetTransaction(transactions[0].GetNativeTransaction().GetId());
-            Checker.checkTransaction.Invoke(transaction);
+            Transaction transaction = client.GetTransaction(transactions[0].NativeTransaction.Id);
+            Checker.CheckTransaction.Invoke(transaction);
         }
 
         public virtual void TestOffchainAvailable()
         {
             IList<Address> eosAddresses = client.GetDepositCryptoAddresses("EOS", null);
-            client.CheckIfOffchainIsAvailable("EOS", eosAddresses[0].GetAddress(), null);
+            client.CheckIfOffchainIsAvailable("EOS", eosAddresses[0].Address_, null);
         }
 
-        public virtual void TestGetAmountLock()
-        {
-        }
+        public virtual void TestGetAmountLock() { }
     }
 }

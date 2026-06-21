@@ -97,16 +97,16 @@ namespace CryptoMarket.SDK.Rest
 
             return JsonSerializer.Deserialize<Dictionary<string, Price>>(jsonResponse);
         }
-        public virtual Dictionary<string, PriceHistory> GetPricesHistory(string to, string from, string until, string since, int limit, Period period, Sort sort)
+        public virtual Dictionary<string, PriceHistory> GetPricesHistory(string to, string from, string until, string since, int? limit, Period? period, Sort? sort)
         {
             return GetPricesHistory(new ParamsBuilder()
                 .To(to)
                 .From(from)
                 .Until(until)
                 .Since(since)
-                .Limit(limit)
-                .Period(period)
-                .Sort(sort));
+                .Limit(limit ?? default)
+                .Period(period ?? default)
+                .Sort(sort ?? default));
         }
         public virtual Dictionary<string, PriceHistory> GetPricesHistory(ParamsBuilder paramsBuilder)
         {
@@ -136,15 +136,15 @@ namespace CryptoMarket.SDK.Rest
         {
             return GetTickerLastPriceBySymbol(symbol);
         }
-        public virtual Dictionary<string, IList<PublicTrade>> GetTrades(IList<string> symbols, Sort sort, SortBy by, string from, string till, string limit)
+        public virtual Dictionary<string, IList<PublicTrade>> GetTrades(IList<string> symbols, Sort? sort, SortBy? by, string from, string till, string limit)
         {
             return GetTrades(new ParamsBuilder()
                 .Symbols(symbols)
-                .Sort(sort)
+                .Sort(sort?? default)
                 .From(from)
                 .Till(till)
-                .Limit(limit)
-                .By(by));
+                .Limit(limit ?? default)
+                .By(by?? default));
         }
         public virtual Dictionary<string, IList<PublicTrade>> GetTrades(ParamsBuilder paramsBuilder)
         {
@@ -152,16 +152,16 @@ namespace CryptoMarket.SDK.Rest
 
             return JsonSerializer.Deserialize<Dictionary<string, IList<PublicTrade>>>(jsonResponse);
         }
-        public virtual IList<PublicTrade> GetTradesBySymbol(string symbol, Sort sort, SortBy by, string from, string till, int limit, int offset)
+        public virtual IList<PublicTrade> GetTradesBySymbol(string symbol, Sort? sort, SortBy? by, string from, string till, int? limit, int? offset)
         {
             return GetTradesBySymbol(new ParamsBuilder()
                 .Symbol(symbol)
-                .Sort(sort)
-                .By(by)
+                .Sort(sort?? default)
+                .By(by ?? default)
                 .From(from)
                 .Till(till)
-                .Limit(limit)
-                .Offset(offset));
+                .Limit(limit ?? default)
+                .Offset(offset ?? default));
         }
         public virtual IList<PublicTrade> GetTradesBySymbol(ParamsBuilder paramsBuilder)
         {
@@ -230,15 +230,15 @@ namespace CryptoMarket.SDK.Rest
         {
             return GetOrderBookVolumeBySymbol(paramsBuilder);
         }
-        public virtual Dictionary<string, IList<Candle>> GetCandles(IList<string> symbols, Period period, Sort sort, string from, string till, int limit)
+        public virtual Dictionary<string, IList<Candle>> GetCandles(IList<string> symbols, Period? period, Sort? sort, string from, string till, int? limit)
         {
             return GetCandles(new ParamsBuilder()
                 .Symbols(symbols)
-                .Period(period)
-                .Sort(sort)
+                .Period(period ?? default)
+                .Sort(sort?? default)
                 .From(from)
                 .Till(till)
-                .Limit(limit));
+                .Limit(limit ?? default));
         }
         public virtual Dictionary<string, IList<Candle>> GetCandles(ParamsBuilder paramsBuilder)
         {
@@ -246,16 +246,16 @@ namespace CryptoMarket.SDK.Rest
 
             return JsonSerializer.Deserialize<Dictionary<string, IList<Candle>>>(jsonResponse);
         }
-        public virtual IList<Candle> GetCandlesBySymbol(string symbol, Period period, Sort sort, string from, string till, int limit, int offset)
+        public virtual IList<Candle> GetCandlesBySymbol(string symbol, Period? period, Sort? sort, string from, string till, int? limit, int? offset)
         {
             return GetCandlesBySymbol(new ParamsBuilder()
                 .Symbol(symbol)
-                .Period(period)
-                .Sort(sort)
+                .Period(period ?? default)
+                .Sort(sort?? default)
                 .From(from)
                 .Till(till)
-                .Limit(limit)
-                .Offset(offset));
+                .Limit(limit ?? default)
+                .Offset(offset?? default));
         }
         public virtual IList<Candle> GetCandlesBySymbol(ParamsBuilder paramsBuilder)
         {
@@ -269,16 +269,16 @@ namespace CryptoMarket.SDK.Rest
         {
             return GetCandlesBySymbol(paramsBuilder);
         }
-        public virtual ConvertedCandles GetConvertedCandles(string targetCurrency, IList<string> symbols, Period period, Sort sort, string from, string till, int limit)
+        public virtual ConvertedCandles GetConvertedCandles(string targetCurrency, IList<string> symbols, Period? period, Sort? sort, string from, string till, int? limit)
         {
             return GetConvertedCandles(new ParamsBuilder()
                 .TargetCurrency(targetCurrency)
                 .Symbols(symbols)
-                .Period(period)
-                .Sort(sort)
+                .Period(period ?? default)
+                .Sort(sort?? default)
                 .From(from)
                 .Till(till)
-                .Limit(limit));
+                .Limit(limit ?? default));
         }
         public virtual ConvertedCandles GetConvertedCandles(ParamsBuilder paramsBuilder)
         {
@@ -287,17 +287,17 @@ namespace CryptoMarket.SDK.Rest
 
             return JsonSerializer.Deserialize<ConvertedCandles>(jsonResponse);
         }
-        public virtual ConvertedCandlesBySymbol GetConvertedCandlesBySymbol(string targetCurrency, string symbol, Period period, Sort sort, string from, string till, int limit, int offset)
+        public virtual ConvertedCandlesBySymbol GetConvertedCandlesBySymbol(string targetCurrency, string symbol, Period? period, Sort? sort, string from, string till, int? limit, int? offset)
         {
             return GetConvertedCandlesBySymbol(new ParamsBuilder()
                 .TargetCurrency(targetCurrency)
                 .Symbol(symbol)
-                .Period(period)
-                .Sort(sort)
+                .Period(period ?? default)
+                .Sort(sort?? default)
                 .From(from)
                 .Till(till)
-                .Limit(limit)
-                .Offset(offset));
+                .Limit(limit ?? default)
+                .Offset(offset?? default));
         }
         public virtual ConvertedCandlesBySymbol GetConvertedCandlesBySymbol(ParamsBuilder paramsBuilder)
         {
@@ -445,17 +445,17 @@ namespace CryptoMarket.SDK.Rest
         }
 
         // TRADING HISTORY
-        public virtual IList<Order> GetSpotOrderHistory(string clientOrderId, string symbol, Sort sort, SortBy by, string from, string till, int limit, int offset)
+        public virtual IList<Order> GetSpotOrderHistory(string clientOrderId, string symbol, Sort? sort, SortBy? by, string from, string till, int? limit, int? offset)
         {
             return GetSpotOrderHistory(new ParamsBuilder()
                 .ClientOrderId(clientOrderId)
                 .Symbol(symbol)
-                .Sort(sort)
-                .By(by)
+                .Sort(sort?? default)
+                .By(by?? default)
                 .From(from)
                 .Till(till)
-                .Limit(limit)
-                .Offset(offset));
+                .Limit(limit ?? default)
+                .Offset(offset?? default));
         }
         public virtual IList<Order> GetSpotOrderHistory(ParamsBuilder paramsBuilder)
         {
@@ -463,17 +463,17 @@ namespace CryptoMarket.SDK.Rest
             
             return JsonSerializer.Deserialize<IList<Order>>(jsonResponse);
         }
-        public virtual IList<Trade> GetSpotTradesHistory(string orderId, string symbol, Sort sort, SortBy by, string from, string till, int limit, int offset)
+        public virtual IList<Trade> GetSpotTradesHistory(string orderId, string symbol, Sort? sort, SortBy? by, string from, string till, int? limit, int? offset)
         {
             return GetSpotTradesHistory(new ParamsBuilder()
                 .OrderId(orderId)
                 .Symbol(symbol)
-                .Sort(sort)
-                .By(by)
+                .Sort(sort?? default)
+                .By(by?? default)
                 .From(from)
                 .Till(till)
-                .Limit(limit)
-                .Offset(offset));
+                .Limit(limit ?? default)
+                .Offset(offset?? default));
         }
         public virtual IList<Trade> GetSpotTradesHistory(ParamsBuilder paramsBuilder)
         {
@@ -712,7 +712,7 @@ namespace CryptoMarket.SDK.Rest
             
             return JsonObject.Parse(jsonResponse)["result"].GetValue<string>();
         }
-        public virtual IList<Transaction> GetTransactionHistory(IList<string> transactionIds, IList<string> currencies, IList<string> networks, IList<TransactionType> types, IList<TransactionSubtype> subtypes, IList<TransactionStatus> statuses, Sort sort, OrderBy orderBy, string from, string till, int idFrom, int idTill, int limit, int offset, bool asGroupTransactions)
+        public virtual IList<Transaction> GetTransactionHistory(IList<string> transactionIds, IList<string> currencies, IList<string> networks, IList<TransactionType> types, IList<TransactionSubtype> subtypes, IList<TransactionStatus> statuses, Sort? sort, OrderBy orderBy, string from, string till, int idFrom, int idTill, int? limit, int? offset, bool asGroupTransactions)
         {
             return GetTransactionHistory(new ParamsBuilder()
                 .TransactionIds(transactionIds)
@@ -721,14 +721,14 @@ namespace CryptoMarket.SDK.Rest
                 .Types(types)
                 .Subtypes(subtypes)
                 .Statuses(statuses)
-                .Sort(sort)
+                .Sort(sort?? default)
                 .OrderBy(orderBy)
                 .From(from)
                 .Till(till)
                 .IdFrom(idFrom)
                 .IdTill(idTill)
-                .Limit(limit)
-                .Offset(offset)
+                .Limit(limit ?? default)
+                .Offset(offset?? default)
                 .GroupTransactions(asGroupTransactions));
         }
         public virtual IList<Transaction> GetTransactionHistory(ParamsBuilder paramsBuilder)
@@ -757,13 +757,13 @@ namespace CryptoMarket.SDK.Rest
             
             return JsonObject.Parse(jsonResponse)["result"].GetValue<bool>();
         }
-        public virtual IList<AmountLock> GetAmountLocks(string currency, bool active, int limit, int offset)
+        public virtual IList<AmountLock> GetAmountLocks(string currency, bool active, int? limit, int? offset)
         {
             return GetAmountLocks(new ParamsBuilder()
                 .Currency(currency)
                 .Active(active)
-                .Limit(limit)
-                .Offset(offset));
+                .Limit(limit ?? default)
+                .Offset(offset?? default));
         }       
         public virtual IList<AmountLock> GetAmountLocks(ParamsBuilder paramsBuilder)
         {

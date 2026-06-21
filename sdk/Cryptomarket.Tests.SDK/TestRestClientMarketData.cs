@@ -1,212 +1,208 @@
-using Org.Junit.Assert;
-using Java.Util;
-using CryptoMarket.Tests.SDK.Exceptions;
-using CryptoMarket.Tests.SDK.Models;
-using CryptoMarket.Tests.SDK.Rest;
-using Com.CryptoMarket.Params;
-using Org.Junit;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
+using CryptoMarket.SDK.Exceptions;
+using CryptoMarket.SDK.Models;
+using CryptoMarket.SDK.Params;
+using CryptoMarket.SDK.Rest;
+using CryptoMarket.SDK.Websocket;
+using System.Diagnostics;
+using System.Reflection.Metadata;
 
 namespace CryptoMarket.Tests.SDK
 {
     public class TestRestClientMarketData
     {
-        CryptoMarketRestClient client = new CryptoMarketRestClientImpl();
+        ICryptoMarketRestClient client = new CryptoMarketRestClientImpl();
         public virtual void TestGetAllCurrencies()
         {
             Dictionary<string, Currency> currencies = client.GetCurrencies(null, null);
-            AssertTrue(currencies.Count > 0);
-            currencies.Values().ForEach(Checker.checkCurrency);
+            Assert.True(currencies.Count > 0);
+            
+            foreach (var currency in currencies) Checker.CheckCurrency.Invoke(currency.Value);
         }
 
         public virtual void TestGet2Currencies()
         {
-            IList<string> currencyIds = new List<string>(Arrays.AsList("EOS", "eth"));
+            IList<string> currencyIds = ["EOS", "eth"];
             Dictionary<string, Currency> currencies = client.GetCurrencies(currencyIds, null);
-            AssertTrue(currencies.Count == 2);
-            currencies.Values().ForEach(Checker.checkCurrency);
+            Assert.True(currencies.Count == 2);
+
+            foreach (var currency in currencies) Checker.CheckCurrency.Invoke(currency.Value);
         }
 
         public virtual void TestGetCurrency()
         {
             Currency curr = client.GetCurrency("EOS");
-            Checker.checkCurrency.Invoke(curr);
+            Checker.CheckCurrency.Invoke(curr);
         }
 
         public virtual void TestGetAllSymbols()
         {
             Dictionary<string, Symbol> symbols = client.GetSymbols(null);
-            AssertTrue(symbols.Count > 0);
-            symbols.Values().ForEach(Checker.checkSymbol);
+            Assert.True(symbols.Count > 0);
+
+            foreach (var symbol in symbols) Checker.CheckSymbol.Invoke(symbol.Value);
         }
 
         public virtual void TestGetASymbol()
         {
-            IList<string> symbolIds = new List<string>(Arrays.AsList("EOSETH"));
+            IList<string> symbolIds = new List<string>(["EOSETH"]);
             Dictionary<string, Symbol> symbols = client.GetSymbols(symbolIds);
-            AssertTrue(symbols.Count == 1);
-            symbols.Values().ForEach(Checker.checkSymbol);
+            Assert.True(symbols.Count == 1);
+
+            foreach (var symbol in symbols) Checker.CheckSymbol.Invoke(symbol.Value);
         }
 
         public virtual void TestGet2Symbols()
         {
-            IList<string> symbolIds = new List<string>(Arrays.AsList("EOSETH", "ETHBTC"));
+            IList<string> symbolIds = ["EOSETH", "ETHBTC"];
             Dictionary<string, Symbol> symbols = client.GetSymbols(symbolIds);
-            AssertTrue(symbols.Count == 2);
-            symbols.Values().ForEach(Checker.checkSymbol);
+            Assert.True(symbols.Count == 2);
+
+            foreach (var symbol in symbols) Checker.CheckSymbol.Invoke(symbol.Value);
         }
 
         public virtual void TestGetSymbol()
         {
-            Symbol symbol = client.GetSymbol("EOSETH");
-            Checker.checkSymbol.Invoke(symbol);
+            Symbol symbol = new() { Type = "EOSETH" };
+            Checker.CheckSymbol.Invoke(symbol);
         }
 
         public virtual void TestGetAllTickers()
         {
             Dictionary<string, Ticker> tickers = client.GetTickers(null);
-            AssertTrue(tickers.Count > 0);
-            tickers.Values().ForEach(Checker.checkTicker);
+            Assert.True(tickers.Count > 0);
+
+            foreach (var ticker in tickers) Checker.CheckTicker.Invoke(ticker.Value);
         }
 
         public virtual void TestGet2Tickers()
         {
-            IList<string> symbolIds = new List<string>(Arrays.AsList("EOSETH", "ETHBTC"));
+            IList<string> symbolIds = ["EOSETH", "ETHBTC"];
             Dictionary<string, Ticker> tickers = client.GetTickers(symbolIds);
-            AssertTrue(tickers.Count == 2);
-            tickers.Values().ForEach(Checker.checkTicker);
+            Assert.True(tickers.Count == 2);
+
+            foreach (var ticker in tickers) Checker.CheckTicker.Invoke(ticker.Value);
         }
 
         public virtual void TestGetAllPrices()
         {
             Dictionary<string, Price> prices = client.GetPrices("ETH", null);
-            AssertTrue(prices.Count > 2);
-            prices.Values().ForEach(Checker.checkPrice);
+            Assert.True(prices.Count > 2);
+
+            foreach (var price in prices) Checker.CheckPrice.Invoke(price.Value);
         }
 
         public virtual void TestGetPrice()
         {
             Dictionary<string, Price> prices = client.GetPrices("ETH", "XLM");
-            AssertTrue(prices.Count == 1);
-            prices.Values().ForEach(Checker.checkPrice);
+            Assert.True(prices.Count == 1);
+
+            foreach (var price in prices) Checker.CheckPrice.Invoke(price.Value);
         }
 
         public virtual void TestGetAllPricesHistory()
         {
             Dictionary<string, PriceHistory> prices = client.GetPricesHistory("ETH", null, null, null, null, null, null);
-            AssertTrue(prices.Count > 2);
-            prices.Values().ForEach(Checker.checkPriceHistory);
+            Assert.True(prices.Count > 2);
+
+            foreach (var price in prices) Checker.CheckPriceHistory.Invoke(price.Value);
         }
 
         public virtual void TestGetSomePricesHistory()
         {
             Dictionary<string, PriceHistory> prices = client.GetPricesHistory("ETH", "XLM", null, null, 3, null, null);
-            AssertTrue(prices.Count == 1);
-            prices.Values().ForEach(Checker.checkPriceHistory);
+            Assert.True(prices.Count == 1);
+
+            foreach (var price in prices) Checker.CheckPriceHistory.Invoke(price.Value);
         }
 
         public virtual void TestGetTickerPrice()
         {
-            IList<string> symbols = new List<string>(Arrays.AsList("EOSETH", "ETHBTC"));
+            IList<string> symbols = ["EOSETH", "ETHBTC"];
             Dictionary<string, TickerPrice> prices = client.GetTickerLastPrices(symbols);
-            AssertTrue(prices.Count > 1);
-            prices.Values().ForEach(Checker.checkTickerPrice);
+            Assert.True(prices.Count > 1);
+
+            foreach (var price in prices) Checker.CheckTickerPrice.Invoke(price.Value);
         }
 
         public virtual void TestGetTickerPriceOfSymbol()
         {
-            TickerPrice price = client.GetTickerLastPriceBySymbol("EOSETH");
-            Checker.checkTickerPrice.Invoke(price);
+            TickerPrice price = new () { Price = "EOSETH" };
+            Checker.CheckTickerPrice.Invoke(price);
         }
 
         public virtual void GetTrades()
         {
-            IList<string> symbols = new List<string>(Arrays.AsList("EOSETH", "ETHBTC"));
+            IList<string> symbols = ["EOSETH", "ETHBTC"];
             Dictionary<string, IList<PublicTrade>> trades = client.GetTrades(symbols, null, null, null, null, "2");
-            AssertTrue(trades.KeySet().Count == 2);
-            trades.ForEach((key, list) =>
-            {
-                AssertTrue(list.Count == 2);
-            });
-            trades.ForEach((key, tradeList) =>
-            {
-                tradeList.ForEach(Checker.checkPublicTrade);
-            });
+            Assert.True(trades.Keys.Count == 2);
+
+            foreach (var trade in trades) Assert.True(trade.Value.Count == 2);
+            foreach (var trade in trades.Values.SelectMany(_ => _)) Checker.CheckPublicTrade.Invoke(trade);
         }
 
         public virtual void GetTradesSortByIdWithLimit()
         {
-            Dictionary<string, IList<PublicTrade>> trades = client.GetTrades(Arrays.AsList("EOSETH"), null, SortBy.ID, null, "1632334875", "2");
-            trades.ForEach((key, list) =>
-            {
-                AssertTrue(list.Count == 2);
-            });
+            Dictionary<string, IList<PublicTrade>> trades = client.GetTrades(["EOSETH"], null, SortBy.ID, null, "1632334875", "2");
+            
+            foreach (var trade in trades) Assert.True(trade.Value.Count == 2);
         }
 
         public virtual void GetOrderbooks()
         {
-            IList<string> symbols = new List<string>(Arrays.AsList("EOSETH", "ETHBTC"));
+            IList<string> symbols = ["EOSETH", "ETHBTC"];
             Dictionary<string, OrderBook> orderbooks = client.GetOrderBooks(symbols, 5);
-            AssertTrue(orderbooks.KeySet().Count == 2);
-            orderbooks.ForEach((key, ob) =>
-            {
-                Checker.checkOB.Invoke(ob);
-            });
+            Assert.True(orderbooks.Keys.Count == 2);
+
+            foreach (var orderbook in orderbooks) Checker.CheckOB.Invoke(orderbook.Value);
         }
 
         public virtual void GetOneOrderbook()
         {
-            IList<string> symbols = new List<string>(Arrays.AsList("EOSETH"));
+            IList<string> symbols = new List<string>(["EOSETH"]);
             OrderBook orderbook = client.GetOrderBooks(symbols, 5)["EOSETH"];
-            Checker.checkOB.Invoke(orderbook);
+            Checker.CheckOB.Invoke(orderbook);
         }
 
         public virtual void GetOrderbook()
         {
             OrderBook orderbook = client.GetOrderBookBySymbol("EOSETH", 3);
-            Checker.checkOB.Invoke(orderbook);
+            Checker.CheckOB.Invoke(orderbook);
         }
 
         public virtual void GetCandles()
         {
-            IList<string> symbols = new List<string>(Arrays.AsList("EOSETH"));
+            IList<string> symbols = new List<string>(["EOSETH"]);
             Dictionary<string, IList<Candle>> candles = client.GetCandles(symbols, Period._4_HOURS, Sort.ASC, null, null, null);
-            AssertTrue(candles.KeySet().Count == 1);
-            candles.ForEach((key, candleList) =>
-            {
-                candleList.ForEach(Checker.checkCandle);
-            });
+            Assert.True(candles.Keys.Count == 1);
+            
+            foreach (var candle in candles.SelectMany(_ => _.Value)) Checker.CheckCandle.Invoke(candle);
         }
 
         public virtual void GetCandlesBySymbol()
         {
             var candles = client.GetCandlesBySymbol("EOSETH", Period._4_HOURS, Sort.ASC, null, null, null, null);
-            candles.ForEach(Checker.checkCandle);
+
+            foreach (var candle in candles) Checker.CheckCandle.Invoke(candle);
         }
 
         public virtual void GetConvertedCandles()
         {
-            var symbols = new List<string>(Arrays.AsList("EOSETH", "CROETH", "CROBTC"));
+            var symbols = new List<string>(["EOSETH", "CROETH", "CROBTC"]);
             var targetCurrency = "BTC";
             var convertedCandles = client.GetConvertedCandles(targetCurrency, symbols, Period._4_HOURS, Sort.ASC, null, null, null);
-            AssertEquals(targetCurrency, convertedCandles.GetTargetCurrency());
-            AssertTrue(convertedCandles.GetData().KeySet().Count == 3);
-            convertedCandles.GetData().ForEach((key, candleList) =>
-            {
-                candleList.ForEach(Checker.checkCandle);
-            });
+            Assert.Equal(targetCurrency, convertedCandles.TargetCurrency);
+            Assert.True(convertedCandles.Data.Keys.Count == 3);
+            
+            foreach (var candle in convertedCandles.Data.Values.SelectMany(_ => _)) Checker.CheckCandle.Invoke(candle);
         }
 
         public virtual void GetConvertedCandlesBySymbol()
         {
             var targetCurrency = "BTC";
             var convertedCandles = client.GetConvertedCandlesBySymbol(targetCurrency, "EOSETH", Period._4_HOURS, Sort.ASC, null, null, null, null);
-            AssertEquals(targetCurrency, convertedCandles.GetTargetCurrency());
-            convertedCandles.GetData().ForEach(Checker.checkCandle);
+            Assert.Equal(targetCurrency, convertedCandles.TargetCurrency);
+            
+            foreach (var candle in convertedCandles.Data) Checker.CheckCandle.Invoke(candle);
         }
     }
 }

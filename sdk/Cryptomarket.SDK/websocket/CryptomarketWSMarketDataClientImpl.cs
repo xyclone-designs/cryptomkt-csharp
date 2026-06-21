@@ -76,23 +76,23 @@ namespace CryptoMarket.SDK.Websocket
             SubscriptionByChannel(channel, @params.BuildObjectMap(), interceptor, resultInterceptor);
         }
 
-        public void SubscribeToTrades(Action<Dictionary<string, IList<WSPublicTrade>>, NotificationType> notificationAction, IList<string> symbols, int limit, Action<IList<string>, CryptoMarketSDKException> resultAction)
+        public void SubscribeToTrades(Action<Dictionary<string, IList<WSPublicTrade>>, NotificationType> notificationAction, IList<string> symbols, int? limit, Action<IList<string>, CryptoMarketSDKException> resultAction)
         {
-            ParamsBuilder @params = new ParamsBuilder().SymbolList(symbols).Limit(limit);
+            ParamsBuilder @params = new ParamsBuilder().SymbolList(symbols).Limit(limit ?? default);
             string channel = "trades";
             
             MakeSubscriptionWithListInterceptors<WSPublicTrade>(channel, @params, notificationAction, resultAction);
         }
-        public void SubscribeToCandles(Action<Dictionary<string, IList<WSCandle>>, NotificationType> notificationAction, Period period, IList<string> symbols, int limit, Action<IList<string>, CryptoMarketSDKException> resultAction)
+        public void SubscribeToCandles(Action<Dictionary<string, IList<WSCandle>>, NotificationType> notificationAction, Period period, IList<string> symbols, int? limit, Action<IList<string>, CryptoMarketSDKException> resultAction)
         {
-            ParamsBuilder @params = new ParamsBuilder().SymbolList(symbols).Limit(limit);
+            ParamsBuilder @params = new ParamsBuilder().SymbolList(symbols).Limit(limit ?? default);
             string channel = string.Format("candles/{0}", period);
             
             MakeSubscriptionWithListInterceptors<WSCandle>(channel, @params, notificationAction, resultAction);
         }
-        public void SubscribeToConvertedCandles(Action<Dictionary<string, IList<WSCandle>>, NotificationType> notificationAction, string targetCurrency, Period period, IList<string> symbols, int limit, Action<IList<string>, CryptoMarketSDKException> resultAction)
+        public void SubscribeToConvertedCandles(Action<Dictionary<string, IList<WSCandle>>, NotificationType> notificationAction, string targetCurrency, Period period, IList<string> symbols, int? limit, Action<IList<string>, CryptoMarketSDKException> resultAction)
         {
-            ParamsBuilder @params = new ParamsBuilder().TargetCurrency(targetCurrency).SymbolList(symbols).Limit(limit);
+            ParamsBuilder @params = new ParamsBuilder().TargetCurrency(targetCurrency).SymbolList(symbols).Limit(limit ?? default);
             string channel = string.Format("converted/candles/{0}", period);
             
             MakeSubscriptionWithListInterceptors<WSCandle>(channel, @params, notificationAction, resultAction);

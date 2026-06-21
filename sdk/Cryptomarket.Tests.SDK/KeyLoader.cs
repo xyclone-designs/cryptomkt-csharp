@@ -1,43 +1,31 @@
 
+using System.Text.Json.Nodes;
+
 namespace CryptoMarket.Tests.SDK
 {
     public class KeyLoader
     {
-        private static string apiKey;
-        private static string apiSecret;
         static KeyLoader()
         {
             Dictionary<string, string> keys = [];
             try
             {
                 // create a JSON reader
-                JsonReader reader = JsonReader.Of(Okio.Buffer(Okio.Source(Paths["/home/ismael/cryptomarket/keys.json"].ToFile())));
+                using FileStream json_str = File.Open("/home/ismael/cryptomarket/keys.json", FileMode.Open);
 
-                // start top-level object
-                reader.BeginObject();
+                JsonNode json_obj = JsonNode.Parse(json_str);
 
-                // read all tokens
-                while (reader.HasNext())
-                {
-                    string name = reader.NextName();
-                    string value = reader.NextString();
-                    
-                    keys.Add(name, value);
-                }
-
-                reader.EndObject();
-
-                //close the writer
-                reader.Dispose();
+                apiKey = json_obj["apiKey"].GetValue<string>();
+                apiSecret = json_obj["apiSecret"].GetValue<string>();
             }
             catch (Exception ex)
             {
                 Console.Error.WriteLine(ex.StackTrace);
             }
-
-            apiKey = keys["apiKey"];
-            apiSecret = keys["apiSecret"];
         }
+
+        private static string apiKey;
+        private static string apiSecret;
 
         public static string GetApiKey()
         {

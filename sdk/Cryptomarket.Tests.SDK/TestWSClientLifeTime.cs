@@ -1,15 +1,5 @@
-using Org.Junit.Assert;
-using Java.Io;
-using Java.Util;
-using Java.Util.Function;
-using CryptoMarket.Tests.SDK.Exceptions;
-using CryptoMarket.Tests.SDK.Websocket;
-using Org.Junit;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
+using CryptoMarket.SDK.Exceptions;
+using CryptoMarket.SDK.Websocket;
 
 namespace CryptoMarket.Tests.SDK
 {
@@ -24,72 +14,74 @@ namespace CryptoMarket.Tests.SDK
         {
             if (exception != null)
             {
-                Fail();
+                Assert.Fail();
             }
         };
         public virtual void TestPublicClientLifetime()
         {
-            CryptoMarketWSMarketDataClient wsClient;
-            wsClient = new CryptoMarketWSMarketDataClientImpl();
-            wsClient.OnConnect(() =>
+            ICryptoMarketWSMarketDataClient wsClient;
+            wsClient = new CryptoMarketWSMarketDataClientImpl()
             {
-                System.@out.Println("connected");
+                OnClose = _ => { Console.WriteLine("Closing"); },
+                OnFailure = _ => { Console.Error.WriteLine(_.StackTrace); },
+            };
+            wsClient.OnConnect = () =>
+            {
+                Console.WriteLine("connected");
                 new Thread(() =>
                 {
-                    wsClient.SubscribeToFullOrderBook((data, notificationType) => System.@out.Println(notificationType), Arrays.AsList("EOSETH"), checkException);
+                    wsClient.SubscribeToFullOrderBook((data, notificationType) => Console.WriteLine(notificationType), ["EOSETH"], checkException);
                     Helpers.Sleep(3);
                     wsClient.Dispose();
-                }).Run();
-            });
-            wsClient.OnClose((reason) => System.@out.Println("closing"));
-            wsClient.OnFailure((t) => t.PrintStackTrace());
+
+                }).Start();
+            };
             wsClient.Connect();
             Helpers.Sleep(6);
         }
 
         public virtual void TestTradingClientLifetime()
         {
-            CryptoMarketWSSpotTradingClient wsClient;
-            wsClient = new CryptoMarketWSSpotTradingClientImpl(KeyLoader.GetApiKey(), KeyLoader.GetApiSecret());
-            wsClient.OnConnect(() =>
+            ICryptoMarketWSSpotTradingClient wsClient = new CryptoMarketWSSpotTradingClientImpl(KeyLoader.GetApiKey(), KeyLoader.GetApiSecret())
             {
-                System.@out.Println("connected");
+                OnClose = _ => { Console.WriteLine("Closing"); },
+                OnFailure = _ => { Console.Error.WriteLine(_.StackTrace); },
+            };
+            wsClient.OnConnect = () =>
+            {
+                Console.WriteLine("connected");
                 Helpers.Sleep(3);
                 wsClient.Dispose();
-            });
-            wsClient.OnClose((reason) => System.@out.Println("closing"));
-            wsClient.OnFailure((t) => t.PrintStackTrace());
+            };
             wsClient.Connect();
             Helpers.Sleep(3);
         }
 
         public virtual void TestAccountClientLifetime()
         {
-            CryptoMarketWSWalletClient wsClient;
-            wsClient = new CryptoMarketWSWalletClientImpl(KeyLoader.GetApiKey(), KeyLoader.GetApiSecret());
-            wsClient.OnClose((reason) =>
+            ICryptoMarketWSWalletClient wsClient = new CryptoMarketWSWalletClientImpl(KeyLoader.GetApiKey(), KeyLoader.GetApiSecret())
             {
-                System.@out.Println("closing");
-            });
-            wsClient.OnConnect(() =>
+                OnClose = _ => { Console.WriteLine("Closing"); },
+                OnFailure = _ => { Console.Error.WriteLine(_.StackTrace); },
+            };
+
+            wsClient.OnConnect = () =>
             {
-                System.@out.Println("connected");
+                Console.WriteLine("connected");
                 wsClient.GetWalletBalances((balanceList, exception) =>
                 {
-                    System.@out.Println(balanceList);
+                    Console.WriteLine(balanceList);
+
                     if (exception != null)
                     {
-                        exception.PrintStackTrace();
-                        Fail();
+                        Console.Error.WriteLine(exception.StackTrace);
+                        Assert.Fail();
                     }
                 });
                 Helpers.Sleep(3);
                 wsClient.Dispose();
-            });
-            wsClient.OnFailure((t) =>
-            {
-                t.PrintStackTrace();
-            });
+            };
+
             wsClient.Connect();
             Helpers.Sleep(6);
         }
@@ -97,14 +89,13 @@ namespace CryptoMarket.Tests.SDK
         public virtual void TestFailedAuth()
         {
             Failed.failed = false;
-            CryptoMarketWSWalletClient wsClient = new CryptoMarketWSWalletClientImpl("uno", "dois");
-            wsClient.OnFailure((t) =>
+            ICryptoMarketWSWalletClient wsClient = new CryptoMarketWSWalletClientImpl("uno", "dois")
             {
-                Failed.failed = true;
-            });
+                OnFailure = _ => { Failed.failed = true; }
+            };
             wsClient.Connect();
             Helpers.Sleep(3);
-            AssertTrue(Failed.failed);
+            Assert.True(Failed.failed);
         }
     }
 }

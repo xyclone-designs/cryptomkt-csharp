@@ -23,15 +23,15 @@ namespace CryptoMarket.SDK.Rest
         Ticker GetTickerOfSymbol(string symbol);
         Dictionary<string, Price> GetPrices(string to, string from);
         Dictionary<string, Price> GetPrices(ParamsBuilder paramsBuilder);
-        Dictionary<string, PriceHistory> GetPricesHistory(string to, string from, string until, string since, int limit, Period period, Sort sort);
+        Dictionary<string, PriceHistory> GetPricesHistory(string to, string from, string until, string since, int? limit, Period? period, Sort? sort);
         Dictionary<string, PriceHistory> GetPricesHistory(ParamsBuilder paramsBuilder);
         Dictionary<string, TickerPrice> GetTickerLastPrices(IList<string> symbols);
         TickerPrice GetTickerLastPriceBySymbol(string symbol);
         TickerPrice GetTickerLastPriceOfSymbol(string symbol);
         TickerPrice GetTickerLastPrice(string symbol);
-        Dictionary<string, IList<PublicTrade>> GetTrades(IList<string> symbols, Sort sort, SortBy by, string from, string till, string limit);
+        Dictionary<string, IList<PublicTrade>> GetTrades(IList<string> symbols, Sort? sort, SortBy? by, string from, string till, string limit);
         Dictionary<string, IList<PublicTrade>> GetTrades(ParamsBuilder paramsBuilder);
-        IList<PublicTrade> GetTradesBySymbol(string symbol, Sort sort, SortBy by, string from, string till, int limit, int offset);
+        IList<PublicTrade> GetTradesBySymbol(string symbol, Sort? sort, SortBy? by, string from, string till, int? limit, int? offset);
         IList<PublicTrade> GetTradesBySymbol(ParamsBuilder paramsBuilder);
         IList<PublicTrade> GetTradesOfSymbol(ParamsBuilder paramsBuilder);
         Dictionary<string, OrderBook> GetOrderBooks(IList<string> symbols, int depth);
@@ -44,14 +44,14 @@ namespace CryptoMarket.SDK.Rest
         OrderBook GetOrderBookVolumeBySymbol(ParamsBuilder paramsBuilder);
         OrderBook GetOrderBookVolumeOfSymbol(ParamsBuilder paramsBuilder);
         OrderBook GetOrderBookVolume(ParamsBuilder paramsBuilder);
-        Dictionary<string, IList<Candle>> GetCandles(IList<string> symbols, Period period, Sort sort, string from, string till, int limit);
+        Dictionary<string, IList<Candle>> GetCandles(IList<string> symbols, Period? period, Sort? sort, string from, string till, int? limit);
         Dictionary<string, IList<Candle>> GetCandles(ParamsBuilder paramsBuilder);
-        IList<Candle> GetCandlesBySymbol(string symbol, Period period, Sort sort, string from, string till, int limit, int offset);
+        IList<Candle> GetCandlesBySymbol(string symbol, Period? period, Sort? sort, string from, string till, int? limit, int? offset);
         IList<Candle> GetCandlesBySymbol(ParamsBuilder paramsBuilder);
         IList<Candle> GetCandlesOfSymbol(ParamsBuilder paramsBuilder);
-        ConvertedCandles GetConvertedCandles(string targetCurrency, IList<string> symbols, Period period, Sort sort, string from, string till, int limit);
+        ConvertedCandles GetConvertedCandles(string targetCurrency, IList<string> symbols, Period? period, Sort? sort, string from, string till, int? limit);
         ConvertedCandles GetConvertedCandles(ParamsBuilder paramsBuilder);
-        ConvertedCandlesBySymbol GetConvertedCandlesBySymbol(string targetCurrency, string symbol, Period period, Sort sort, string from, string till, int limit, int offset);
+        ConvertedCandlesBySymbol GetConvertedCandlesBySymbol(string targetCurrency, string symbol, Period? period, Sort? sort, string from, string till, int? limit, int? offset);
         ConvertedCandlesBySymbol GetConvertedCandlesBySymbol(ParamsBuilder paramsBuilder);
         ConvertedCandlesBySymbol GetConvertedCandlesOfSymbol(ParamsBuilder paramsBuilder);
         /// AUTHENTICATED CALLS ///
@@ -76,9 +76,9 @@ namespace CryptoMarket.SDK.Rest
         Commission GetTradingCommissionOfCurrency(string symbol);
         Commission GetTradingCommissionByCurrency(string symbol);
         // TRADING HISTORY
-        IList<Order> GetSpotOrderHistory(string clientOrderId, string symbol, Sort sort, SortBy by, string from, string till, int limit, int offset);
+        IList<Order> GetSpotOrderHistory(string clientOrderId, string symbol, Sort? sort, SortBy? by, string from, string till, int? limit, int? offset);
         IList<Order> GetSpotOrderHistory(ParamsBuilder paramsBuilder);
-        IList<Trade> GetSpotTradesHistory(string orderId, string symbol, Sort sort, SortBy by, string from, string till, int limit, int offset);
+        IList<Trade> GetSpotTradesHistory(string orderId, string symbol, Sort? sort, SortBy? by, string from, string till, int? limit, int? offset);
         IList<Trade> GetSpotTradesHistory(ParamsBuilder paramsBuilder);
         // WALLET MANAGEMENT
         IList<Balance> GetWalletBalances();
@@ -114,12 +114,12 @@ namespace CryptoMarket.SDK.Rest
         string TransferBetweenWalletAndExchange(ParamsBuilder paramsBuilder);
         string TransferMoneyToAnotherUser(string currency, string amount, IdentifyBy by, string identifier, string publicComment);
         string TransferMoneyToAnotherUser(ParamsBuilder paramsBuilder);
-        IList<Transaction> GetTransactionHistory(IList<string> transactionIds, IList<string> currencies, IList<string> networks, IList<TransactionType> types, IList<TransactionSubtype> subtypes, IList<TransactionStatus> statuses, Sort sort, OrderBy orderBy, string from, string till, int idFrom, int idTill, int limit, int offset, bool groupTransactions);
+        IList<Transaction> GetTransactionHistory(IList<string> transactionIds, IList<string> currencies, IList<string> networks, IList<TransactionType> types, IList<TransactionSubtype> subtypes, IList<TransactionStatus> statuses, Sort? sort, OrderBy orderBy, string from, string till, int idFrom, int idTill, int? limit, int? offset, bool groupTransactions);
         IList<Transaction> GetTransactionHistory(ParamsBuilder paramsBuilder);
         Transaction GetTransaction(string transactionId);
         bool CheckIfOffchainIsAvailable(string currency, string address, string paymentId);
         bool CheckIfOffchainIsAvailable(ParamsBuilder paramsBuilder);
-        IList<AmountLock> GetAmountLocks(string currency, bool active, int limit, int offset);
+        IList<AmountLock> GetAmountLocks(string currency, bool active, int? limit, int? offset);
         IList<AmountLock> GetAmountLocks(ParamsBuilder paramsBuilder);
         // SUB ACOUNTS
         IList<SubAccount> GetSubAccountList();

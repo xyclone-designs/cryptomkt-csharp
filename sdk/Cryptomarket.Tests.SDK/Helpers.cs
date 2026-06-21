@@ -27,7 +27,7 @@ namespace CryptoMarket.Tests.SDK
             }
             catch (ThreadInterruptedException)
             {
-                // Fail();
+                // Assert.Fail();
             }
         }
         public static Action<T, NotificationType> Checker<T>(FailChecker failChecker, Action<T> checker)

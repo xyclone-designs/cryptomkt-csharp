@@ -1,49 +1,40 @@
-using Org.Junit.Assert;
-using Java.Util;
-using Org.Junit;
-using CryptoMarket.Tests.SDK.Exceptions;
-using CryptoMarket.Tests.SDK.Models;
-using CryptoMarket.Tests.SDK.Rest;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
+using CryptoMarket.SDK.Exceptions;
+using CryptoMarket.SDK.Models;
+using CryptoMarket.SDK.Rest;
 
 namespace CryptoMarket.Tests.SDK
 {
     public class TestRestClientChangeCredentials
     {
-        CryptoMarketRestClient client = new CryptoMarketRestClientImpl(KeyLoader.GetApiKey(), KeyLoader.GetApiSecret());
+        ICryptoMarketRestClient client = new CryptoMarketRestClientImpl(KeyLoader.GetApiKey(), KeyLoader.GetApiSecret());
+
         public virtual void TestChangeCredentials()
         {
             IList<Balance> balances = client.GetWalletBalances();
             if (balances.Count == 0)
-                Fail();
-            balances.ForEach((balance) =>
-            {
-                if (balance.GetCurrency() == null || balance.GetCurrency().Equals(""))
-                    Fail();
-            });
+                Assert.Fail();
+
+            foreach (var balance in balances)
+                if (string.IsNullOrEmpty(balance.Currency))
+                    Assert.Fail();
+
             client.ChangeCredentials("null", "null");
+
             try
             {
                 balances = client.GetWalletBalances();
-                Fail("should fail");
+                Assert.Fail("should fail");
             }
-            catch (CryptoMarketSDKException e)
-            {
-            }
+            catch (CryptoMarketSDKException) { }
 
             client.ChangeCredentials(KeyLoader.GetApiKey(), KeyLoader.GetApiSecret());
             balances = client.GetWalletBalances();
             if (balances.Count == 0)
-                Fail();
-            balances.ForEach((balance) =>
-            {
-                if (balance.GetCurrency() == null || balance.GetCurrency().Equals(""))
-                    Fail();
-            });
+                Assert.Fail();
+
+            foreach (var balance in balances)
+                if (string.IsNullOrEmpty(balance.Currency))
+                    Assert.Fail();
         }
     }
 }

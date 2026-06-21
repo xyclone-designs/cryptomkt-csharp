@@ -16,7 +16,7 @@ namespace CryptoMarket.SDK.Websocket
         void CreateSpotOrder(ParamsBuilder paramsBuilder, Action<Report, CryptoMarketSDKException> resultAction);
         void CreateSpotOrderList(ContingencyType contingencyType, IList<OrderBuilder> orders, string orderListId, Action<Report, CryptoMarketSDKException> resultAction);
         void CancelSpotOrder(string clientOrderId, Action<Report, CryptoMarketSDKException> resultAction);
-        void ReplaceSpotOrder(string clientOrderId, string newClientOrderId, string quantity, string price, string stopPrice, bool strictValidate, Action<Report, CryptoMarketSDKException> resultAction);
+        void ReplaceSpotOrder(string clientOrderId, string newClientOrderId, string quantity, string price, string stopPrice, bool? strictValidate, Action<Report, CryptoMarketSDKException> resultAction);
         void CancelAllSpotOrders(Action<IList<Report>, CryptoMarketSDKException> resultAction);
         void GetSpotTradingBalances(Action<IList<Balance>, CryptoMarketSDKException> resultAction);
         void GetSpotTradingBalanceOfCurrency(string currency, Action<Balance, CryptoMarketSDKException> resultAction);

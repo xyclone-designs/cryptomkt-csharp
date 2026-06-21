@@ -1,22 +1,15 @@
-using Org.Junit.Assert;
-using Java.Io;
-using Java.Util;
-using Org.Junit;
-using Com.CryptoMarket.Params;
-using CryptoMarket.Tests.SDK.Exceptions;
-using CryptoMarket.Tests.SDK.Websocket;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
+using CryptoMarket.SDK.Models;
+using CryptoMarket.SDK.Params;
+using CryptoMarket.SDK.Websocket;
+using System.Transactions;
 
 namespace CryptoMarket.Tests.SDK
 {
     public class TestWSWalletClient
     {
-        CryptoMarketWSWalletClient wsClient;
+        ICryptoMarketWSWalletClient wsClient;
         bool authenticated = false;
+
         public virtual void Before()
         {
             wsClient = new CryptoMarketWSWalletClientImpl(KeyLoader.GetApiKey(), KeyLoader.GetApiSecret());
@@ -31,10 +24,11 @@ namespace CryptoMarket.Tests.SDK
 
         public virtual void TestGetWalletBalances()
         {
-            wsClient.GetWalletBalances((result, exception) =>
+            wsClient.GetWalletBalances((results, exception) =>
             {
-                result.ForEach(Checker.checkBalance);
+                foreach (var result in results) Checker.CheckBalance.Invoke(result);
             });
+
             Helpers.Sleep(3);
         }
 
@@ -42,14 +36,14 @@ namespace CryptoMarket.Tests.SDK
         {
             wsClient.GetWalletBalanceByCurrency("EOS", (result, exception) =>
             {
-                Checker.checkBalance.Invoke(result);
+                Checker.CheckBalance.Invoke(result);
             });
             Helpers.Sleep(3);
         }
 
         public virtual void TestGetTransactions()
         {
-            wsClient.GetTransactions((result, exception) => result.ForEach(Checker.checkTransaction), null);
+            wsClient.GetTransactions((results, exception) => { foreach (var result in results) Checker.CheckTransaction.Invoke(result); }, null);
             Helpers.Sleep(3);
         }
 
@@ -57,9 +51,11 @@ namespace CryptoMarket.Tests.SDK
         {
             wsClient.GetTransactions((transactions, exception) =>
             {
-                AssertTrue(transactions.Count > 0);
-                transactions.ForEach(Checker.checkTransaction);
-            }, new ParamsBuilder().OrderBy(OrderBy.CREATED_AT).Sort(Sort.DESC).Limit(1000).Offset(0).Currencies(List.Of()).From("1614815872000"));
+                Assert.True(transactions.Count > 0);
+
+                foreach (var transaction in transactions) Checker.CheckTransaction.Invoke(transaction);
+
+            }, new ParamsBuilder().OrderBy(OrderBy.CREATED_AT).Sort(Sort.DESC).Limit(1000).Offset(0).Currencies([]).From("1614815872000"));
         }
     }
 }

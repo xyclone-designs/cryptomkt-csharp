@@ -1,42 +1,36 @@
-using Java.Util;
-using Com.CryptoMarket.Params;
-using CryptoMarket.Tests.SDK.Exceptions;
-using CryptoMarket.Tests.SDK.Models;
-using CryptoMarket.Tests.SDK.Rest;
-using Org.Junit;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
+using CryptoMarket.SDK.Models;
+using CryptoMarket.SDK.Params;
+using CryptoMarket.SDK.Rest;
 
 namespace CryptoMarket.Tests.SDK
 {
     public class TestRestClientSpotTradingHistory
     {
-        CryptoMarketRestClient client = new CryptoMarketRestClientImpl(KeyLoader.GetApiKey(), KeyLoader.GetApiSecret());
+        ICryptoMarketRestClient client = new CryptoMarketRestClientImpl(KeyLoader.GetApiKey(), KeyLoader.GetApiSecret());
+
         public virtual void TestGetOrderHistoryAndGetOrders()
         {
             IList<Order> orders = client.GetSpotOrderHistory(new ParamsBuilder().Symbol("EOSETH"));
-            orders.ForEach(Checker.checkOrder);
+            
+            foreach (var order in orders) Checker.CheckOrder.Invoke(order);
         }
-
         public virtual void TestGetOrderHistoryAndGetOrdersWithParams()
         {
             IList<Order> orders = client.GetSpotOrderHistory(new ParamsBuilder().By(SortBy.TIMESTAMP).Sort(Sort.DESC).Limit(1000).Offset(0).From("1610701510"));
-            orders.ForEach(Checker.checkOrder);
+            
+            foreach (var order in orders) Checker.CheckOrder.Invoke(order);
         }
-
         public virtual void TestGetTradingHistory()
         {
             IList<Trade> trades = client.GetSpotTradesHistory(new ParamsBuilder().Limit(12));
-            trades.ForEach(Checker.checkTrade);
+            
+            foreach (var trade in trades) Checker.CheckTrade.Invoke(trade);
         }
-
         public virtual void TestGetTradingHistoryWithParamsWithParams()
         {
             IList<Trade> trades = client.GetSpotTradesHistory(new ParamsBuilder().By(SortBy.TIMESTAMP).Sort(Sort.DESC).Limit(1000).Offset(0).From("1610701510"));
-            trades.ForEach(Checker.checkTrade);
+
+            foreach (var trade in trades) Checker.CheckTrade.Invoke(trade);
         }
     }
 }

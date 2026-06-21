@@ -7,9 +7,9 @@ namespace CryptoMarket.SDK.Websocket
 {
     public interface ICryptoMarketWSMarketDataClient : ICryptoMarketWS
     {
-        void SubscribeToTrades(Action<Dictionary<string, IList<WSPublicTrade>>, NotificationType> notificationAction, IList<string> symbols, int limit, Action<IList<string>, CryptoMarketSDKException> resultAction);
-        void SubscribeToCandles(Action<Dictionary<string, IList<WSCandle>>, NotificationType> notificationAction, Period period, IList<string> symbols, int limit, Action<IList<string>, CryptoMarketSDKException> resultAction);
-        void SubscribeToConvertedCandles(Action<Dictionary<string, IList<WSCandle>>, NotificationType> notificationAction, string targetCurrency, Period period, IList<string> symbols, int limit, Action<IList<string>, CryptoMarketSDKException> resultAction);
+        void SubscribeToTrades(Action<Dictionary<string, IList<WSPublicTrade>>, NotificationType> notificationAction, IList<string> symbols, int? limit, Action<IList<string>, CryptoMarketSDKException> resultAction);
+        void SubscribeToCandles(Action<Dictionary<string, IList<WSCandle>>, NotificationType> notificationAction, Period period, IList<string> symbols, int? limit, Action<IList<string>, CryptoMarketSDKException> resultAction);
+        void SubscribeToConvertedCandles(Action<Dictionary<string, IList<WSCandle>>, NotificationType> notificationAction, string targetCurrency, Period period, IList<string> symbols, int? limit, Action<IList<string>, CryptoMarketSDKException> resultAction);
         void SubscribeToPriceRates(Action<Dictionary<string, WSPriceRate>, NotificationType> notificationAction, PriceSpeed speed, string targetCurrency, IList<string> currencies, Action<IList<string>, CryptoMarketSDKException> resultAction);
         void SubscribeToPriceRatesInBatches(Action<Dictionary<string, WSPriceRate>, NotificationType> notificationAction, PriceSpeed speed, string targetCurrency, IList<string> currencies, Action<IList<string>, CryptoMarketSDKException> resultAction);
         void SubscribeToMiniTicker(Action<Dictionary<string, WSCandle>, NotificationType> notificationAction, TickerSpeed speed, IList<string> symbols, Action<IList<string>, CryptoMarketSDKException> resultAction);

@@ -1,11 +1,11 @@
 
 namespace CryptoMarket.SDK.Models
 {
-    public class FeeRequest
+    public class FeeRequest(string? currency, string? amount, string? networkCode)
     {
-        public string? Currency { get; set; }
-        public string? Amount { get; set; }
-        public string? NetworkCode { get; set; }
+        public string? Currency { get; set; } = currency;
+        public string? Amount { get; set; } = amount;
+        public string? NetworkCode { get; set; } = networkCode;
 
         public override string ToString()
         {

@@ -1,35 +1,19 @@
-using Org.Junit.Assert;
-using Java.Io;
-using Java.Util;
-using Java.Util.Function;
-using Org.Junit;
-using Com.CryptoMarket.Params;
-using CryptoMarket.Tests.SDK.Helpers;
-using CryptoMarket.Tests.SDK.Exceptions;
-using CryptoMarket.Tests.SDK.Models;
-using CryptoMarket.Tests.SDK.Websocket;
-using Java.Util.Concurrent;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
+using CryptoMarket.SDK.Exceptions;
+using CryptoMarket.SDK.Models;
+using CryptoMarket.SDK.Params;
+using CryptoMarket.SDK.Rest;
+using CryptoMarket.SDK.Websocket;
 
 namespace CryptoMarket.Tests.SDK
 {
     public class TestWSSpotTradingClient
     {
-        CryptoMarketWSSpotTradingClient wsClient;
+        ICryptoMarketWSSpotTradingClient wsClient;
         bool authenticated = false;
         public virtual void Before()
         {
             wsClient = new CryptoMarketWSSpotTradingClientImpl(KeyLoader.GetApiKey(), KeyLoader.GetApiSecret(), 60000);
-            var ft = new FutureTask<object>(() =>
-            {
-            }, new object ());
-            wsClient.OnConnect(ft);
             wsClient.Connect();
-            ft.Get();
         }
 
         public virtual void After()
@@ -39,34 +23,34 @@ namespace CryptoMarket.Tests.SDK
 
         public virtual void TestGetSpotTradingBalances()
         {
-            FailChecker failChecker = new FailChecker();
-            wsClient.GetSpotTradingBalances(Helpers.ListAndExceptionChecker(failChecker, Checker.checkBalance));
+            Helpers.FailChecker failChecker = new ();
+            wsClient.GetSpotTradingBalances(Helpers.ListAndExceptionChecker(failChecker, Checker.CheckBalance));
             Helpers.Sleep(3);
-            AssertFalse(failChecker.Failed());
+            Assert.False(failChecker.Failed());
         }
 
         public virtual void TestSpotTradingBalance()
         {
-            FailChecker failChecker = new FailChecker();
-            wsClient.GetSpotTradingBalanceOfCurrency("EOS", Helpers.ObjectAndExceptionChecker(failChecker, Checker.checkBalance));
+            Helpers.FailChecker failChecker = new ();
+            wsClient.GetSpotTradingBalanceOfCurrency("EOS", Helpers.ObjectAndExceptionChecker(failChecker, Checker.CheckBalance));
             Helpers.Sleep(3);
             if (failChecker.Failed())
             {
-                Fail(failChecker.GetErrMsg().Get());
+                Assert.Fail(failChecker.ErrMsg);
             }
 
-            AssertFalse(failChecker.Failed());
+            Assert.False(failChecker.Failed());
         }
 
         public virtual void TestOrderFlow()
         {
-            string oldClientOrderId = String.Format("%d", System.CurrentTimeMillis()) + "11";
-            string newClientOrderId = String.Format("%d", System.CurrentTimeMillis()) + "22";
+            string oldClientOrderId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString() + "11";
+            string newClientOrderId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString() + "22";
 
             // create
-            wsClient.CreateSpotOrder(new ParamsBuilder().Side(Side.SELL).Symbol("EOSETH").Price("10000").Quantity("0.01").ClientOrderId(oldClientOrderId), (report, exception) =>
+            wsClient.CreateSpotOrder(new ParamsBuilder().Side(Side.Sell).Symbol("EOSETH").Price("10000").Quantity("0.01").ClientOrderId(oldClientOrderId), (report, exception) =>
             {
-                Checker.checkReport.Invoke(report);
+                Checker.CheckReport.Invoke(report);
             });
             Helpers.Sleep(3);
 
@@ -75,18 +59,18 @@ namespace CryptoMarket.Tests.SDK
             {
                 if (exception != null)
                 {
-                    Fail();
+                    Assert.Fail();
                 }
 
                 bool present = false;
                 foreach (Report order in reportList)
                 {
-                    if (order.GetClientOrderId().Equals(oldClientOrderId))
+                    if (order.ClientOrderId.Equals(oldClientOrderId))
                         present = true;
                 }
 
                 if (!present)
-                    Fail("could not find");
+                    Assert.Fail("could not find");
             });
             Helpers.Sleep(3);
 
@@ -95,12 +79,12 @@ namespace CryptoMarket.Tests.SDK
             {
                 if (exception != null)
                 {
-                    Fail();
+                    Assert.Fail();
                 }
 
-                if (!report.GetOriginalClientOrderId().Equals(oldClientOrderId))
+                if (!report.OriginalClientOrderId.Equals(oldClientOrderId))
                 {
-                    Fail();
+                    Assert.Fail();
                 }
             });
             Helpers.Sleep(3);
@@ -110,13 +94,13 @@ namespace CryptoMarket.Tests.SDK
             {
                 if (exception != null)
                 {
-                    Fail();
+                    Assert.Fail();
                 }
 
-                if (!report.GetStatus().Equals(OrderStatus.CANCELED))
-                    Fail();
-                if (report.GetClientOrderId().Equals(oldClientOrderId))
-                    Fail();
+                if (!report.Status.Equals(OrderStatus.CANCELED))
+                    Assert.Fail();
+                if (report.ClientOrderId.Equals(oldClientOrderId))
+                    Assert.Fail();
             });
             Helpers.Sleep(3);
         }
@@ -126,22 +110,22 @@ namespace CryptoMarket.Tests.SDK
             wsClient.CancelAllSpotOrders(null);
             for (int i = 0; i < 5; i++)
             {
-                wsClient.CreateSpotOrder(new ParamsBuilder().Symbol("EOSETH").Side(Side.SELL).Price("1000").Quantity("0.01"), null);
+                wsClient.CreateSpotOrder(new ParamsBuilder().Symbol("EOSETH").Side(Side.Sell).Price("1000").Quantity("0.01"), null);
             }
 
             Action<IList<Report>, CryptoMarketSDKException> checkReportListSizeAndValidity = (reportList, exception) =>
             {
                 if (exception != null)
                 {
-                    Fail();
+                    Assert.Fail();
                 }
 
                 if (reportList.Count != 5)
                 {
-                    Fail();
+                    Assert.Fail();
                 }
 
-                reportList.ForEach(Checker.checkReport);
+                foreach (var report in reportList) Checker.CheckReport.Invoke(report);
             };
             Helpers.Sleep(3);
             wsClient.GetAllActiveOrders(checkReportListSizeAndValidity);
@@ -152,9 +136,9 @@ namespace CryptoMarket.Tests.SDK
 
         public virtual void TestGetSpotTradingCommissions()
         {
-            wsClient.GetSpotCommissions((result, exception) =>
+            wsClient.GetSpotCommissions((results, exception) =>
             {
-                result.ForEach(Checker.checkCommission);
+                foreach (var result in results) Checker.CheckCommission.Invoke(result);
             });
             Helpers.Sleep(3);
         }
@@ -163,27 +147,34 @@ namespace CryptoMarket.Tests.SDK
         {
             wsClient.GetSpotCommissionOfSymbol("EOSETH", (result, exception) =>
             {
-                Checker.checkCommission.Invoke(result);
+                Checker.CheckCommission.Invoke(result);
             });
             Helpers.Sleep(3);
         }
 
         public virtual void TestCreateOrderList()
         {
-            string orderListId = String.Format("%d", System.CurrentTimeMillis());
-            string secondClientOrderId = String.Format("%d", System.CurrentTimeMillis()) + "2";
-            Side side = Side.SELL;
+            string orderListId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
+            string secondClientOrderId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString() + "2";
+            Side side = Side.Sell;
             string quantity = "0.01";
             string price = "10000";
-            var failChecker = new FailChecker();
-            wsClient.CreateSpotOrderList(ContingencyType.ALL_OR_NONE, Arrays.AsList(new OrderBuilder().ClientOrderId(orderListId).Symbol("EOSETH").Side(side).TimeInForce(TimeInForce.FOK).Quantity(quantity).Price(price), new OrderBuilder().ClientOrderId(secondClientOrderId).Symbol("EOSBTC").Side(side).TimeInForce(TimeInForce.FOK).Quantity(quantity).Price(price)), orderListId, Helpers.ObjectAndExceptionChecker(failChecker, Checker.checkReport));
+            var failChecker = new Helpers.FailChecker ();
+            wsClient.CreateSpotOrderList(ContingencyType.AllOrNone,
+            [
+                new OrderBuilder { ClientOrderId = orderListId, Symbol = "EOSETH", Side = side, TimeInForce = TimeInForce.FOK, Quantity = quantity, Price = price }, 
+                new OrderBuilder { ClientOrderId = secondClientOrderId, Symbol = "EOSBTC", Side = side, TimeInForce = TimeInForce.FOK, Quantity = quantity, Price = price }
+            
+            ], orderListId, Helpers.ObjectAndExceptionChecker(failChecker, Checker.CheckReport));
+            
             Helpers.Sleep(12);
+
             if (failChecker.Failed())
             {
-                Fail(failChecker.GetErrMsg().Get());
+                Assert.Fail(failChecker.ErrMsg);
             }
 
-            AssertFalse(failChecker.Failed());
+            Assert.False(failChecker.Failed());
         }
     }
 }

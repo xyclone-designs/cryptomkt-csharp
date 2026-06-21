@@ -83,9 +83,9 @@ namespace CryptoMarket.SDK.Websocket
             
             SendById("spot_cancel_order", @params.BuildObjectMap(), interceptor);
         }
-        public void ReplaceSpotOrder(string clientOrderId, string newClientOrderId, string quantity, string price, string stopPrice, bool strictValidate, Action<Report, CryptoMarketSDKException> resultAction)
+        public void ReplaceSpotOrder(string clientOrderId, string newClientOrderId, string quantity, string price, string stopPrice, bool? strictValidate, Action<Report, CryptoMarketSDKException> resultAction)
         {
-            ParamsBuilder paramsBuilder = new ParamsBuilder().ClientOrderId(clientOrderId).NewClientOrderId(newClientOrderId).Quantity(quantity).Price(price).StopPrice(stopPrice).StrictValidate(strictValidate);
+            ParamsBuilder paramsBuilder = new ParamsBuilder().ClientOrderId(clientOrderId).NewClientOrderId(newClientOrderId).Quantity(quantity).Price(price).StopPrice(stopPrice).StrictValidate(strictValidate ?? default);
             Interceptor interceptor = InterceptorFactory.NewOfWSResponseObject(resultAction);
             
             SendById("spot_replace_order", paramsBuilder.BuildObjectMap(), interceptor);
